@@ -1,0 +1,112 @@
+{# ============================================================ #}
+{# PAGE D'ACCUEIL                                               #}
+{# ============================================================ #}
+
+{# On herite du template de base. #}
+{% extends 'base.html' %}
+
+{# Titre de l'onglet navigateur. #}
+{% block title %}Accueil{% endblock %}
+
+{% block content %}
+
+{# --- HERO : grande banniere verte --- #}
+<div class="hero text-center">
+    <div class="container">
+        <h1 class="display-5 fw-bold">
+            <i class="bi bi-basket-fill"></i> FoodSave
+        </h1>
+        <p class="lead mt-3">
+            Ensemble, sauvons les produits alimentaires au Tchad et au Cameroun.
+        </p>
+        <a href="{{ url_for('annonces.index') }}" class="btn btn-light btn-lg mt-3">
+            <i class="bi bi-search"></i> Voir les annonces
+        </a>
+        {% if not current_user.is_authenticated %}
+            <a href="{{ url_for('auth.register') }}" class="btn btn-outline-light btn-lg mt-3 ms-2">
+                <i class="bi bi-person-plus"></i> Rejoindre
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+{# --- SECTION : 3 cartes de presentation --- #}
+<div class="container mt-5">
+    <div class="row text-center">
+
+        {# Carte 1 : Partagez #}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 p-4">
+                <div style="font-size: 3rem;">🥬</div>
+                <h5 class="mt-3">Partagez</h5>
+                <p class="text-muted">
+                    Publiez vos surplus alimentaires en quelques clics.
+                    Restaurants, commercants, particuliers : votre surplus
+                    peut nourrir quelqu'un.
+                </p>
+            </div>
+        </div>
+
+        {# Carte 2 : Connectez #}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 p-4">
+                <div style="font-size: 3rem;">🤝</div>
+                <h5 class="mt-3">Connectez</h5>
+                <p class="text-muted">
+                    Rencontrez ceux qui ont besoin pres de chez vous.
+                    Notre systeme d'alerte vous previent quand un produit
+                    est disponible dans votre ville.
+                </p>
+            </div>
+        </div>
+
+        {# Carte 3 : Impactez #}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 p-4">
+                <div style="font-size: 3rem;">🌍</div>
+                <h5 class="mt-3">Impactez</h5>
+                <p class="text-muted">
+                    Reduisez le gaspillage, nourrissez les communautes.
+                    Chaque kilo sauve est un pas vers un avenir plus juste.
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    {# --- Section conseils regions --- #}
+    <div class="card mt-4 p-4">
+        <h4 class="mb-3">🌡️ Conseils adaptes a votre region</h4>
+        <p class="text-muted">
+            FoodSave propose des conseils de conservation adaptes a chaque climat :
+        </p>
+        <div class="row mt-3">
+            <div class="col-md-4">
+                <h6 class="text-warning">🏜️ Zone sahelienne</h6>
+                <small>N'Djamena, Abeche, Maroua, Kousseri</small>
+                <p class="mt-2 small">
+                    Chaleur intense, air sec. Privilegier le sechage au soleil
+                    et les jarres en terre cuite.
+                </p>
+            </div>
+            <div class="col-md-4">
+                <h6 class="text-success">🌾 Zone soudanienne</h6>
+                <small>Moundou, Pala, Garoua, Ngaoundere</small>
+                <p class="mt-2 small">
+                    Chaleur moderee. Fumage en saison des pluies,
+                    surveillance des moisissures.
+                </p>
+            </div>
+            <div class="col-md-4">
+                <h6 class="text-primary">🌳 Zone humide</h6>
+                <small>Douala, Yaounde, Kribi, Limbé</small>
+                <p class="mt-2 small">
+                    Humidite permanente. Consommation rapide, fumage,
+                    recipients hermetiques.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

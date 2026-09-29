@@ -1,0 +1,113 @@
+﻿{% extends 'base.html' %}
+{% block title %}Recommandation ML{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-cpu text-success"></i> Recommandation par Machine Learning</h2>
+        <a href="{{ url_for('admin.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Admin
+        </a>
+    </div>
+
+    <p class="text-muted">
+        Modele Random Forest entraine sur l'historique des reservations.
+        Features : proximite, urgence, preference de categorie, type d'offre,
+        meme ville, jours restants, prix normalise.
+    </p>
+
+    {# --- Bouton d'entrainement --- #}
+    <div class="card p-4 mb-4">
+        <h5>Entrainement du modele</h5>
+        <form method="POST" action="{{ url_for('admin.ml_entrainer') }}">
+            <button class="btn btn-vert">
+                <i class="bi bi-play-circle"></i>
+                {% if metriques %}Reentrainer le modele{% else %}Entrainer le modele{% endif %}
+            </button>
+            <small class="text-muted d-block mt-2">
+                L'entrainement prend 2-5 secondes (100 arbres de decision).
+            </small>
+        </form>
+    </div>
+
+    {% if metriques %}
+        {# --- Metriques --- #}
+        <h4>Metriques du modele</h4>
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card p-3 text-center">
+                    <h3 class="text-success">{{ metriques.accuracy }}</h3>
+                    <small class="text-muted">Accuracy</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 text-center">
+                    <h3 class="text-primary">{{ metriques.precision }}</h3>
+                    <small class="text-muted">Precision</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 text-center">
+                    <h3 class="text-info">{{ metriques.recall }}</h3>
+                    <small class="text-muted">Recall</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 text-center">
+                    <h3 class="text-warning">{{ metriques.f1 }}</h3>
+                    <small class="text-muted">F1-score</small>
+                </div>
+            </div>
+        </div>
+
+        {# --- Info dataset --- #}
+        <div class="card p-3 mb-4">
+            <h5>Dataset</h5>
+            <ul class="mb-0">
+                <li>Echantillons totaux : <strong>{{ metriques.nb_echantillons }}</strong></li>
+                <li>Entrainement : <strong>{{ metriques.nb_train }}</strong></li>
+                <li>Test : <strong>{{ metriques.nb_test }}</strong></li>
+                <li>Entraine le : <strong>{{ metriques.date_entrainement }}</strong></li>
+            </ul>
+        </div>
+
+        {# --- Importance des features --- #}
+        <div class="card p-3 mb-4">
+            <h5>Importance des features</h5>
+            <table class="table table-sm">
+                <thead><tr><th>Feature</th><th>Importance</th></tr></thead>
+                <tbody>
+                    {% for feat, imp in metriques.importance_features.items() %}
+                        <tr>
+                            <td>{{ feat }}</td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar bg-success"
+                                         style="width: {{ (imp * 100)|round(0) }}%;">
+                                        {{ imp }}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {# --- Rapport de classification --- #}
+        <div class="card p-3">
+            <h5>Rapport de classification</h5>
+            <pre style="background: #f5f5f5; padding: 12px; border-radius: 6px;">{{ metriques.rapport }}</pre>
+        </div>
+
+    {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            Aucun modele n'a encore ete entraine. Clique sur le bouton
+            ci-dessus pour entrainer le Random Forest.
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

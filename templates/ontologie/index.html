@@ -1,0 +1,185 @@
+{# ============================================================ #}
+{# PAGE ONTOLOGIE - Visualisation des connaissances              #}
+{# ============================================================ #}
+
+{% extends 'base.html' %}
+{% block title %}Ontologie{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+
+    <h2 class="mb-3">
+        <i class="bi bi-diagram-3 text-success"></i> Ontologie alimentaire FoodSave
+    </h2>
+    <p class="text-muted">
+        Representation formelle des connaissances du domaine alimentaire
+        (Tchad &amp; Cameroun) : classes, instances, proprietes et axiomes.
+    </p>
+
+    {# --- Statistiques --- #}
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card p-3 text-center">
+                <h3 class="text-success">{{ stats.nb_classes }}</h3>
+                <p class="mb-0 text-muted">Classes</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card p-3 text-center">
+                <h3 class="text-success">{{ stats.nb_instances }}</h3>
+                <p class="mb-0 text-muted">Instances (produits)</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card p-3 text-center">
+                <h3 class="text-success">{{ stats.nb_axiomes }}</h3>
+                <p class="mb-0 text-muted">Axiomes</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card p-3 text-center">
+                <h3 class="text-success">{{ stats.profondeur_max }}</h3>
+                <p class="mb-0 text-muted">Profondeur max</p>
+            </div>
+        </div>
+    </div>
+
+    {# --- Boutons d'export --- #}
+    <div class="mb-4">
+        <a href="{{ url_for('ontologie.export_turtle') }}" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-download"></i> Exporter en Turtle (RDF)
+        </a>
+    </div>
+
+    {# --- Onglets : Classes / Instances / Axiomes --- #}
+    <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-classes">
+                <i class="bi bi-diagram-2"></i> Classes ({{ stats.nb_classes }})
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-instances">
+                <i class="bi bi-box"></i> Instances ({{ stats.nb_instances }})
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-axiomes">
+                <i class="bi bi-lightning"></i> Axiomes ({{ stats.nb_axiomes }})
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+        {# ============ TAB CLASSES ============ #}
+        <div class="tab-pane fade show active" id="tab-classes">
+            <div class="card p-3">
+                <p class="text-muted small">
+                    Hierarchie des classes. Chaque classe herite des proprietes
+                    de ses super-classes via la relation <code>sorte-de</code>.
+                </p>
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Classe</th>
+                            <th>Parent (sorte-de)</th>
+                            <th>Proprietes</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in classes %}
+                            <tr>
+                                <td><strong>{{ c.nom }}</strong></td>
+                                <td>
+                                    {% if c.parent %}
+                                        <code>{{ c.parent }}</code>
+                                    {% else %}
+                                        <em class="text-muted">racine</em>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>
+                                        {% for k, v in c.proprietes.items() %}
+                                            <span class="badge bg-secondary">{{ k }}={{ v }}</span>
+                                        {% endfor %}
+                                    </small>
+                                </td>
+                                <td><small>{{ c.description }}</small></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# ============ TAB INSTANCES ============ #}
+        <div class="tab-pane fade" id="tab-instances">
+            {% for classe, instances in instances_par_classe.items() %}
+                <div class="card p-3 mb-3">
+                    <h5 class="mb-3">
+                        <i class="bi bi-tag-fill text-success"></i> {{ classe }}
+                        <span class="badge bg-secondary">{{ instances|length }}</span>
+                    </h5>
+                    <div class="row">
+                        {% for inst in instances %}
+                            <div class="col-md-6 mb-3">
+                                <div class="border rounded p-3 h-100">
+                                    <h6 class="mb-2">{{ inst.nom }}</h6>
+                                    <small class="text-muted">est-un <code>{{ classe }}</code></small>
+                                    <hr class="my-2">
+                                    {% for k, v in inst.proprietes.items() %}
+                                        <div class="small">
+                                            <strong>{{ k }} :</strong>
+                                            {% if v is iterable and v is not string %}
+                                                {{ v|join(', ') }}
+                                            {% else %}
+                                                {{ v }}
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                    {% if inst.astuce %}
+                                        <div class="alert alert-warning small mt-2 mb-0 py-1 px-2">
+                                            <i class="bi bi-stars"></i> {{ inst.astuce }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {# ============ TAB AXIOMES ============ #}
+        <div class="tab-pane fade" id="tab-axiomes">
+            <div class="card p-3">
+                <p class="text-muted small">
+                    Les axiomes sont des regles d'inference qui declenchent
+                    automatiquement des conseils selon la situation.
+                </p>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Conclusion</th>
+                            <th>Source</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ax in axiomes %}
+                            <tr>
+                                <td><code>{{ ax.nom }}</code></td>
+                                <td>{{ ax.conclusion }}</td>
+                                <td><small class="text-muted">{{ ax.source }}</small></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% block title %}Anomalies de prix{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-exclamation-triangle text-warning"></i> Detection d'anomalies de prix</h2>
+        <a href="{{ url_for('admin.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Retour admin
+        </a>
+    </div>
+
+    <p class="text-muted">
+        Le systeme analyse les annonces <strong>en vente</strong> et signale
+        celles dont le prix est statistiquement anormal par rapport aux
+        autres annonces de la meme categorie. Aucune suppression
+        automatique : l'admin decide.
+    </p>
+
+    {# ============ STATISTIQUES ============ #}
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card p-3 text-center">
+                <h3>{{ comparaison.nb_v1 }}</h3>
+                <p class="mb-0 text-muted small">Anomalies (Z-classique)</p>
+                <small class="text-muted">Seuil |z| ≥ 2.0</small>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card p-3 text-center border-success">
+                <h3 class="text-success">{{ comparaison.nb_v2 }}</h3>
+                <p class="mb-0 text-muted small">Anomalies (MAD robuste)</p>
+                <small class="text-muted">Seuil |z_rob| ≥ 3.5</small>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card p-3 text-center border-warning">
+                <h3 class="text-warning">{{ comparaison.gain }}</h3>
+                <p class="mb-0 text-muted small">Ratees par Z-classique</p>
+                <small class="text-muted">Detectees par MAD uniquement</small>
+            </div>
+        </div>
+    </div>
+
+    {# ============ DEMONSTRATION EXPERIMENTALE ============ #}
+    <div class="card p-4 mb-4">
+        <h5 class="mb-3">
+            <i class="bi bi-clipboard-data"></i> Demonstration experimentale
+        </h5>
+        <p class="small text-muted mb-3">
+            Exemple : 5 annonces a ~500 FCFA + 1 annonce a 50 000 FCFA.
+            Le Z-classique rate l'outlier, le MAD le detecte.
+        </p>
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Methode</th>
+                    <th>Mediane</th>
+                    <th>Moyenne</th>
+                    <th>MAD</th>
+                    <th>Z du prix 50 000</th>
+                    <th>Detection</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Z-classique</td>
+                    <td>{{ demo.mediane }}</td>
+                    <td>{{ demo.moyenne }}</td>
+                    <td>—</td>
+                    <td><code>{{ demo.z_classique_50000 }}</code></td>
+                    <td>
+                        {% if demo.detecte_par_z_classique %}
+                            <span class="badge bg-success">Detecte</span>
+                        {% else %}
+                            <span class="badge bg-danger">Rate</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>MAD robuste</td>
+                    <td>{{ demo.mediane }}</td>
+                    <td>—</td>
+                    <td>{{ demo.mad }}</td>
+                    <td><code>{{ demo.z_mad_50000 }}</code></td>
+                    <td>
+                        {% if demo.detecte_par_mad %}
+                            <span class="badge bg-success">Detecte</span>
+                        {% else %}
+                            <span class="badge bg-danger">Rate</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="alert alert-info small mb-0">
+            <strong>Argument clé :</strong>
+            le breakdown point du Z-classique est 0% (1 outlier peut le fausser),
+            celui du MAD est 50% (il faut corrompre la moitié des données).
+            C'est pourquoi le MAD est préféré en production.
+        </div>
+    </div>
+
+    {# ============ LISTE DES ANOMALIES DETECTEES (MAD) ============ #}
+    <div class="card p-3 mb-4">
+        <h5 class="mb-3">
+            <i class="bi bi-shield-exclamation text-success"></i>
+            Anomalies detectees par MAD ({{ comparaison.nb_v2 }})
+        </h5>
+        {% if comparaison.v2_mad %}
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Produit</th>
+                        <th>Categorie</th>
+                        <th>Prix</th>
+                        <th>Mediane cat.</th>
+                        <th>Z robuste</th>
+                        <th>Priorite</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in comparaison.v2_mad %}
+                        <tr {% if r.annonce.id in comparaison.ratees_par_v1 %}class="table-warning"{% endif %}>
+                            <td>
+                                <a href="{{ url_for('annonces.detail', id=r.annonce.id) }}">
+                                    {{ r.annonce.produit }}
+                                </a>
+                                {% if r.annonce.id in comparaison.ratees_par_v1 %}
+                                    <br><small class="text-danger">
+                                        ⚠ Ratee par Z-classique
+                                    </small>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ r.categorie }}</small></td>
+                            <td><strong>{{ r.annonce.prix }} FCFA</strong></td>
+                            <td>{{ r.mediane }}</td>
+                            <td>
+                                <code class="{% if r.z > 0 %}text-danger{% else %}text-primary{% endif %}">
+                                    {{ r.z }}
+                                </code>
+                            </td>
+                            <td>
+                                {% if r.z|abs >= 10 %}
+                                    <span class="badge bg-danger">Critique</span>
+                                {% elif r.z|abs >= 5 %}
+                                    <span class="badge bg-warning">Elevee</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Moyenne</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('annonces.detail', id=r.annonce.id) }}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> Voir
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="alert alert-success mb-0">
+                <i class="bi bi-check-circle"></i>
+                Aucune anomalie detectee. Tous les prix sont coherents.
+            </div>
+        {% endif %}
+    </div>
+
+    {# ============ LISTE DES ANOMALIES (Z-CLASSIQUE) ============ #}
+    <div class="card p-3">
+        <h5 class="mb-3">
+            <i class="bi bi-graph-up"></i>
+            Anomalies detectees par Z-classique ({{ comparaison.nb_v1 }})
+        </h5>
+        <p class="small text-muted">
+            Methode classique conservee pour comparaison experimentale.
+        </p>
+        {% if comparaison.v1_classique %}
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Produit</th>
+                        <th>Prix</th>
+                        <th>Moyenne cat.</th>
+                        <th>Z-score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in comparaison.v1_classique %}
+                        <tr>
+                            <td>{{ r.annonce.produit }}</td>
+                            <td>{{ r.annonce.prix }} FCFA</td>
+                            <td>{{ r.moyenne }}</td>
+                            <td><code>{{ r.z }}</code></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-muted mb-0">Aucune anomalie detectee par Z-classique.</p>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

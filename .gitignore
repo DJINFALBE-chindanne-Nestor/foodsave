@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+build/
+dist/
+venv/
+env/
+ENV/
+
+# Base de donnees locale
+*.db
+*.sqlite
+instance/
+
+# Environnement
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Systeme
+.DS_Store
+Thumbs.db
+
+# Uploads utilisateurs (sauf le placeholder)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Modeles ML (genere par entrainement)
+models_ml/
+
+# Logs
+*.log
+
+# Fichiers de test / scripts temporaires
+rehash_passwords.py
+generer_icones.py
+creer_icones_photo.py
+foodsave-icon.jpg

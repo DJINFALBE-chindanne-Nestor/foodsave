@@ -1,0 +1,86 @@
+$mesdonnees = @'
+{% extends 'base.html' %}
+{% block title %}Mes donnees{% endblock %}
+{% block content %}
+<div class="container mt-5 mb-5" style="max-width: 900px;">
+
+    <h2><i class="bi bi-shield-lock text-success"></i> Mes donnees personnelles</h2>
+    <p class="text-muted">
+        Conformement au RGPD, vous pouvez consulter, exporter et supprimer
+        toutes vos donnees personnelles.
+    </p>
+
+    <div class="card p-4 mb-4">
+        <h5>Mes informations</h5>
+        <table class="table table-sm">
+            <tr><th style="width: 30%;">ID</th><td>{{ user.id }}</td></tr>
+            <tr><th>Nom</th><td>{{ user.nom }}</td></tr>
+            <tr><th>Email</th><td>{{ user.email }}</td></tr>
+            <tr><th>Telephone</th><td>{{ user.telephone or 'Non renseigne' }}</td></tr>
+            <tr><th>Ville</th><td>{{ user.ville }}, {{ user.region }}, {{ user.pays }}</td></tr>
+            <tr><th>Role</th><td>{{ user.role }}</td></tr>
+            <tr><th>Inscription</th><td>{{ user.date_inscription.strftime('%d/%m/%Y') if user.date_inscription else '-' }}</td></tr>
+            <tr><th>Derniere connexion</th><td>{{ user.derniere_connexion.strftime('%d/%m/%Y %H:%M') if user.derniere_connexion else '-' }}</td></tr>
+            <tr><th>Consentement RGPD</th>
+                <td>
+                    {% if user.consentement_rgpd %}
+                        <span class="badge bg-success">Donne</span>
+                    {% else %}
+                        <span class="badge bg-danger">Non donne</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="card p-4 mb-4">
+        <h5>Droit a la portabilite</h5>
+        <p class="small text-muted">
+            Telechargez toutes vos donnees au format JSON. Vous pourrez les
+            conserver, les analyser ou les transferer vers un autre service.
+        </p>
+        <a href="{{ url_for('legal.exporter_mes_donnees') }}" class="btn btn-outline-primary">
+            <i class="bi bi-download"></i> Exporter mes donnees (JSON)
+        </a>
+    </div>
+
+    <div class="card p-4 border-danger">
+        <h5 class="text-danger">Droit a l'effacement</h5>
+        <p class="small">
+            Cette action est <strong>irreversible</strong>. Elle supprimera
+            definitivement votre compte, vos annonces, vos reservations et
+            anonymisera vos messages.
+        </p>
+        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalSuppression">
+            <i class="bi bi-trash"></i> Supprimer mon compte
+        </button>
+    </div>
+
+</div>
+
+{# Modal de confirmation #}
+<div class="modal fade" id="modalSuppression" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('legal.supprimer_mon_compte') }}">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Confirmer la suppression</h5>
+                    <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Pour confirmer, tapez exactement <strong>SUPPRIMER</strong> :</p>
+                    <input type="text" class="form-control" name="confirmation"
+                           placeholder="SUPPRIMER" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button class="btn btn-danger">Supprimer definitivement</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+'@
+Set-Content -Path templates\legal\mes_donnees.html -Value $mesdonnees -Encoding UTF8
+Write-Host "mes_donnees.html :" (Test-Path templates\legal\mes_donnees.html)

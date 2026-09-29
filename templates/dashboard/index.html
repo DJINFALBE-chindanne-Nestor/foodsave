@@ -1,0 +1,142 @@
+﻿{% extends 'base.html' %}
+{% block title %}Tableau de bord{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+
+    <h2 class="mb-4">
+        <i class="bi bi-bar-chart text-success"></i> Tableau de bord
+    </h2>
+
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card p-4 text-center">
+                <div style="font-size: 2.5rem;">📋</div>
+                <h2 class="mt-2">{{ total_annonces }}</h2>
+                <p class="text-muted mb-0">Annonces</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card p-4 text-center">
+                <div style="font-size: 2.5rem;">👥</div>
+                <h2 class="mt-2">{{ total_users }}</h2>
+                <p class="text-muted mb-0">Utilisateurs</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card p-4 text-center">
+                <div style="font-size: 2.5rem;">🤝</div>
+                <h2 class="mt-2">{{ total_reservations }}</h2>
+                <p class="text-muted mb-0">Reservations</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card p-4 text-center">
+                <div style="font-size: 2.5rem;">⚖️</div>
+                <h2 class="mt-2">{{ kg_sauves }}</h2>
+                <p class="text-muted mb-0">Kg sauves</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card p-4 h-100">
+                <h5 class="mb-3"><i class="bi bi-tags"></i> Par categorie</h5>
+                {% if par_categorie %}
+                    <table class="table table-sm">
+                        <thead><tr><th>Categorie</th><th class="text-end">Nombre</th></tr></thead>
+                        <tbody>
+                            {% for cat, nb in par_categorie %}
+                                <tr><td>{{ cat|capitalize }}</td><td class="text-end fw-bold">{{ nb }}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-muted">Aucune donnee.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card p-4 h-100">
+                <h5 class="mb-3"><i class="bi bi-globe"></i> Par pays</h5>
+                {% if par_pays %}
+                    <table class="table table-sm">
+                        <thead><tr><th>Pays</th><th class="text-end">Nombre</th></tr></thead>
+                        <tbody>
+                            {% for p, nb in par_pays %}
+                                <tr><td>{{ p }}</td><td class="text-end fw-bold">{{ nb }}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-muted">Aucune donnee.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card p-4 h-100">
+                <h5 class="mb-3"><i class="bi bi-exclamation-triangle"></i> Par niveau d'urgence</h5>
+                {% if par_urgence %}
+                    <table class="table table-sm">
+                        <thead><tr><th>Niveau</th><th class="text-end">Nombre</th></tr></thead>
+                        <tbody>
+                            {% for u, nb in par_urgence %}
+                                <tr>
+                                    <td><span class="badge badge-{{ u }}">{{ u|upper }}</span></td>
+                                    <td class="text-end fw-bold">{{ nb }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-muted">Aucune donnee.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card p-4 h-100">
+                <h5 class="mb-3"><i class="bi bi-geo-alt"></i> Top regions actives</h5>
+                {% if top_regions %}
+                    <table class="table table-sm">
+                        <thead><tr><th>Region</th><th>Pays</th><th class="text-end">Annonces</th></tr></thead>
+                        <tbody>
+                            {% for region, pays, nb in top_regions %}
+                                <tr>
+                                    <td>{{ region or '-' }}</td>
+                                    <td><small>{{ pays }}</small></td>
+                                    <td class="text-end fw-bold">{{ nb }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-muted">Aucune donnee.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card p-4">
+        <h5 class="mb-3"><i class="bi bi-people"></i> Utilisateurs par role</h5>
+        {% if par_role %}
+            <div class="row">
+                {% for role, nb in par_role %}
+                    <div class="col-md-3 mb-2">
+                        <div class="border rounded p-3 text-center">
+                            <strong>{{ role|capitalize }}</strong>
+                            <div class="fs-4">{{ nb }}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted">Aucun utilisateur.</p>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

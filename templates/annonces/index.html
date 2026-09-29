@@ -1,0 +1,148 @@
+{# ============================================================ #}
+{# LISTE DES ANNONCES avec filtres                              #}
+{# ============================================================ #}
+
+{% extends 'base.html' %}
+{% block title %}Annonces{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+
+    {# --- Titre + bouton publier --- #}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-list-ul text-success"></i> Annonces disponibles</h2>
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('annonces.create') }}" class="btn btn-vert">
+                <i class="bi bi-plus-circle"></i> Publier
+            </a>
+        {% endif %}
+    </div>
+
+    {# --- FILTRES --- #}
+    <div class="card p-3 mb-4">
+        <form method="GET" class="row g-2 align-items-end">
+
+            {# Filtre pays #}
+            <div class="col-md-2">
+                <label class="form-label small">Pays</label>
+                <select name="pays" class="form-select form-select-sm">
+                    <option value="">Tous</option>
+                    <option value="Tchad"    {% if pays=='Tchad' %}selected{% endif %}>Tchad</option>
+                    <option value="Cameroun" {% if pays=='Cameroun' %}selected{% endif %}>Cameroun</option>
+                </select>
+            </div>
+
+            {# Filtre ville #}
+            <div class="col-md-3">
+                <label class="form-label small">Ville</label>
+                <select name="ville" class="form-select form-select-sm">
+                    <option value="">Toutes</option>
+                    {% for v in villes %}
+                        <option value="{{ v }}" {% if v==ville %}selected{% endif %}>{{ v }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {# Filtre categorie #}
+            <div class="col-md-2">
+                <label class="form-label small">Categorie</label>
+                <select name="categorie" class="form-select form-select-sm">
+                    <option value="">Toutes</option>
+                    {% for c in ['legume','fruit','laitier','viande','cereale','boulangerie','plat_cuisine'] %}
+                        <option value="{{ c }}" {% if c==categorie %}selected{% endif %}>{{ c|capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {# Filtre urgence #}
+            <div class="col-md-2">
+                <label class="form-label small">Urgence</label>
+                <select name="urgence" class="form-select form-select-sm">
+                    <option value="">Toutes</option>
+                    <option value="critique" {% if urgence=='critique' %}selected{% endif %}>Critique</option>
+                    <option value="urgente"  {% if urgence=='urgente'  %}selected{% endif %}>Urgente</option>
+                    <option value="normale"  {% if urgence=='normale'  %}selected{% endif %}>Normale</option>
+                </select>
+            </div>
+
+            {# Boutons #}
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-vert btn-sm flex-fill">
+                    <i class="bi bi-funnel"></i> Filtrer
+                </button>
+                <a href="{{ url_for('annonces.index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-x"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    {# --- LISTE DES ANNONCES --- #}
+    {% if annonces %}
+        <div class="row">
+            {% for a in annonces %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+
+                        {# Photo : si dispo, on l'affiche, sinon placeholder colore. #}
+                        {% if a.photo_filename %}
+                            <img src="{{ url_for('static', filename='uploads/' + a.photo_filename) }}"
+                                 class="annonce-photo" alt="{{ a.produit }}">
+                        {% else %}
+                            <div class="annonce-photo d-flex align-items-center justify-content-center bg-light">
+                                <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                            </div>
+                        {% endif %}
+
+                        <div class="card-body">
+
+                            {# Badges urgence + type #}
+                            <div class="mb-2">
+                                <span class="badge badge-{{ a.urgence }}">{{ a.urgence|upper }}</span>
+                                {% if a.type_offre == 'don' %}
+                                    <span class="badge bg-success">DON</span>
+                                {% else %}
+                                    <span class="badge bg-info text-dark">VENTE</span>
+                                {% endif %}
+                                <span class="badge bg-secondary">{{ a.etat_produit }}</span>
+                            </div>
+
+                            {# Nom du produit #}
+                            <h5 class="card-title">{{ a.produit }}</h5>
+
+                            {# Infos #}
+                            <p class="card-text small text-muted mb-2">
+                                <i class="bi bi-tag"></i> {{ a.categorie|capitalize }}<br>
+                                <i class="bi bi-geo-alt"></i> {{ a.ville }}, {{ a.pays }}<br>
+                                <i class="bi bi-box-seam"></i> {{ a.quantite }} {{ a.unite }}<br>
+                                <i class="bi bi-calendar-x"></i> Expire le {{ a.date_peremption.strftime('%d/%m/%Y') }}
+                            </p>
+
+                            {# Prix #}
+                            <p class="fw-bold mb-2">
+                                {% if a.prix == 0 %}
+                                    <span class="text-success">Gratuit (don)</span>
+                                {% else %}
+                                    <span class="text-primary">{{ a.prix }} FCFA</span>
+                                {% endif %}
+                            </p>
+
+                            {# Lien detail #}
+                            <a href="{{ url_for('annonces.detail', id=a.id) }}"
+                               class="btn btn-outline-success btn-sm w-100">
+                                <i class="bi bi-eye"></i> Voir les details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle"></i>
+            Aucune annonce ne correspond a vos criteres.
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+$mentions = @'
+{% extends 'base.html' %}
+{% block title %}Mentions legales{% endblock %}
+{% block content %}
+<div class="container mt-5 mb-5" style="max-width: 850px;">
+    <h2>Mentions legales</h2>
+
+    <h4>Editeur de la plateforme</h4>
+    <p>FoodSave Tchad-Cameroun — Projet academique<br>
+    Master 1 Intelligence Artificielle Appliquee<br>
+    Universite de Ngaoundere</p>
+
+    <h4>Auteur</h4>
+    <p>DJINFALBE CHINDANNE NESTOR</p>
+
+    <h4>Hebergement</h4>
+    <p>Render Services Inc. — San Francisco, USA</p>
+
+    <h4>Propriete intellectuelle</h4>
+    <p>Le code source de FoodSave est protege par le droit d'auteur. Il est utilise dans un cadre academique.</p>
+
+    <h4>Responsabilite</h4>
+    <p>FoodSave est une plateforme de mise en relation. Elle ne peut etre tenue responsable de la qualite des produits echanges ni des interactions entre utilisateurs.</p>
+</div>
+{% endblock %}
+'@
+Set-Content -Path templates\legal\mentions.html -Value $mentions -Encoding UTF8
+Write-Host "mentions.html :" (Test-Path templates\legal\mentions.html)

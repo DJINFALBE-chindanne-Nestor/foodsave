@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}Recommandations{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+
+    <h2 class="mb-3">
+        <i class="bi bi-stars text-warning"></i> Recommandations pour vous
+    </h2>
+    <p class="text-muted">
+        Suggestions personnalisees basees sur votre localisation,
+        l'urgence des produits et vos preferences.
+    </p>
+
+    {# --- Encart pedagogique : comment ca marche --- #}
+    <div class="card p-3 mb-4 bg-light">
+        <h6 class="mb-2">
+            <i class="bi bi-info-circle"></i> Comment ces suggestions sont calculees
+        </h6>
+        <div class="small">
+            Score = <strong>{{ stats.poids.proximite }}</strong> × proximite
+                  + <strong>{{ stats.poids.urgence }}</strong> × urgence
+                  + <strong>{{ stats.poids.preferences }}</strong> × preferences
+                  + <strong>{{ stats.poids.type_offre }}</strong> × type d'offre
+        </div>
+        {% if stats.categories_preferees %}
+            <div class="small mt-2">
+                <strong>Vos categories preferees :</strong>
+                {% for cat, nb in stats.categories_preferees %}
+                    <span class="badge bg-success">{{ cat }} ({{ nb }})</span>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="small mt-2 text-muted">
+                Vous n'avez pas encore reserve d'annonce. Les suggestions
+                s'affineront avec votre utilisation.
+            </div>
+        {% endif %}
+    </div>
+
+    {# --- Liste des recommandations --- #}
+    {% if resultats %}
+        <div class="row">
+            {% for r in resultats %}
+                {% set a = r.annonce %}
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+
+                        {# Photo #}
+                        {% if a.photo_filename %}
+                            <img src="{{ url_for('static', filename='uploads/' + a.photo_filename) }}"
+                                 class="annonce-photo" alt="{{ a.produit }}">
+                        {% else %}
+                            <div class="annonce-photo d-flex align-items-center justify-content-center bg-light">
+                                <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                            </div>
+                        {% endif %}
+
+                        <div class="card-body">
+
+                            {# Score en haut #}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge bg-warning text-dark">
+                                    Score {{ r.score }}
+                                </span>
+                                <span class="badge badge-{{ a.urgence }}">
+                                    {{ a.urgence|upper }}
+                                </span>
+                            </div>
+
+                            <h5 class="card-title">{{ a.produit }}</h5>
+
+                            <p class="card-text small text-muted mb-2">
+                                <i class="bi bi-geo-alt"></i> {{ a.ville }}, {{ a.pays }}<br>
+                                <i class="bi bi-box-seam"></i> {{ a.quantite }} {{ a.unite }}<br>
+                                <i class="bi bi-calendar-x"></i> Expire le {{ a.date_peremption.strftime('%d/%m/%Y') }}
+                            </p>
+
+                            {# Detail du score (collapsible) #}
+                            <details class="mb-2">
+                                <summary class="small text-muted" style="cursor:pointer;">
+                                    Voir le detail du score
+                                </summary>
+                                <div class="small mt-2">
+                                    <div>Proximite : <strong>{{ r.detail.proximite }}</strong></div>
+                                    <div>Urgence : <strong>{{ r.detail.urgence }}</strong></div>
+                                    <div>Preference : <strong>{{ r.detail.preference }}</strong></div>
+                                    <div>Type d'offre : <strong>{{ r.detail.type_offre }}</strong></div>
+                                </div>
+                            </details>
+
+                            <a href="{{ url_for('annonces.detail', id=a.id) }}"
+                               class="btn btn-outline-success btn-sm w-100">
+                                <i class="bi bi-eye"></i> Voir
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            Aucune recommandation pour le moment. Publiez ou reservez
+            des annonces pour affiner vos suggestions.
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

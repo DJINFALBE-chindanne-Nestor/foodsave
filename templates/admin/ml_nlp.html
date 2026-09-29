@@ -1,0 +1,142 @@
+﻿{% extends 'base.html' %}
+{% block title %}NLP - Classification{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-chat-left-text text-success"></i> NLP - Classification automatique</h2>
+        <a href="{{ url_for('admin.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Admin
+        </a>
+    </div>
+
+    <p class="text-muted">
+        Classifieur Naive Bayes (TF-IDF) qui analyse une phrase libre et
+        extrait automatiquement : produit, categorie, etat, quantite, ville.
+        Entraine sur un corpus annote de phrases typiques Tchad/Cameroun.
+    </p>
+
+    {# --- Bouton entrainement --- #}
+    <div class="card p-4 mb-4">
+        <h5>Entrainement du modele</h5>
+        <form method="POST" action="{{ url_for('admin.ml_nlp_entrainer') }}">
+            <button class="btn btn-vert">
+                <i class="bi bi-play-circle"></i>
+                {% if metriques %}Reentrainer{% else %}Entrainer{% endif %} le modele NLP
+            </button>
+        </form>
+    </div>
+
+    {% if metriques %}
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card p-3 text-center">
+                    <h3 class="text-success">{{ metriques.accuracy_categorie }}</h3>
+                    <small class="text-muted">Accuracy categorie</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 text-center">
+                    <h3 class="text-primary">{{ metriques.accuracy_etat }}</h3>
+                    <small class="text-muted">Accuracy etat</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 text-center">
+                    <h3>{{ metriques.nb_categories }}</h3>
+                    <small class="text-muted">Categories</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 text-center">
+                    <h3>{{ metriques.nb_exemples }}</h3>
+                    <small class="text-muted">Exemples d'entrainement</small>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    {# --- Zone de test interactif --- #}
+    <div class="card p-4 mb-4">
+        <h5>Tester le modele (interactif)</h5>
+        <div class="mb-3">
+            <textarea class="form-control" id="phraseNLP" rows="3"
+                      placeholder="Ex: J'ai 5 kg de tomates fraiches a vendre a Pala"></textarea>
+        </div>
+        <button class="btn btn-vert" id="btnTesterNLP">
+            <i class="bi bi-search"></i> Analyser la phrase
+        </button>
+
+        <div id="resultatNLP" class="mt-4" style="display:none;">
+            <h6>Resultats de l'analyse :</h6>
+            <table class="table table-sm">
+                <tbody>
+                    <tr><th style="width: 30%;">Produit</th><td id="resProduit"></td></tr>
+                    <tr><th>Categorie</th><td><span id="resCategorie" class="badge bg-success"></span></td></tr>
+                    <tr><th>Etat</th><td><span id="resEtat" class="badge bg-secondary"></span></td></tr>
+                    <tr><th>Quantite</th><td id="resQuantite"></td></tr>
+                    <tr><th>Unite</th><td id="resUnite"></td></tr>
+                    <tr><th>Ville</th><td id="resVille"></td></tr>
+                </tbody>
+            </table>
+            <h6>Probabilites par categorie :</h6>
+            <ul id="resProbaCategorie" class="small"></ul>
+            <h6>Probabilites par etat :</h6>
+            <ul id="resProbaEtat" class="small"></ul>
+        </div>
+    </div>
+
+    {% if metriques %}
+        <div class="card p-3 mb-4">
+            <h5>Rapport categorie</h5>
+            <pre style="background:#f5f5f5; padding:12px; border-radius:6px;">{{ metriques.rapport_categorie }}</pre>
+        </div>
+        <div class="card p-3">
+            <h5>Rapport etat</h5>
+            <pre style="background:#f5f5f5; padding:12px; border-radius:6px;">{{ metriques.rapport_etat }}</pre>
+        </div>
+    {% endif %}
+
+</div>
+
+<script>
+document.getElementById('btnTesterNLP').addEventListener('click', async function() {
+    const phrase = document.getElementById('phraseNLP').value.trim();
+    if (!phrase) { alert("Entrez une phrase."); return; }
+
+    const formData = new FormData();
+    formData.append('phrase', phrase);
+
+    try {
+        const rep = await fetch('/admin/ml/nlp/tester', { method: 'POST', body: formData });
+        const data = await rep.json();
+        if (data.erreur) { alert(data.erreur); return; }
+
+        document.getElementById('resultatNLP').style.display = 'block';
+        document.getElementById('resProduit').textContent = data.produit || '(non detecte)';
+        document.getElementById('resCategorie').textContent = data.categorie || '?';
+        document.getElementById('resEtat').textContent = data.etat || '?';
+        document.getElementById('resQuantite').textContent = data.quantite !== null ? data.quantite : '(non detectee)';
+        document.getElementById('resUnite').textContent = data.unite || '(non detectee)';
+        document.getElementById('resVille').textContent = data.ville || '(non detectee)';
+
+        const ulCat = document.getElementById('resProbaCategorie');
+        ulCat.innerHTML = '';
+        for (const [cat, proba] of Object.entries(data.probabilites_categorie || {})) {
+            const li = document.createElement('li');
+            li.textContent = `${cat} : ${(proba * 100).toFixed(1)}%`;
+            ulCat.appendChild(li);
+        }
+
+        const ulEtat = document.getElementById('resProbaEtat');
+        ulEtat.innerHTML = '';
+        for (const [etat, proba] of Object.entries(data.probabilites_etat || {})) {
+            const li = document.createElement('li');
+            li.textContent = `${etat} : ${(proba * 100).toFixed(1)}%`;
+            ulEtat.appendChild(li);
+        }
+    } catch (e) { alert("Erreur : " + e.message); }
+});
+</script>
+{% endblock %}

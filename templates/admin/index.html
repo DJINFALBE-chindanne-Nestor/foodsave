@@ -1,0 +1,352 @@
+{# ============================================================ #}
+{# PANNEAU D'ADMINISTRATION                                     #}
+{# ------------------------------------------------------------ #}
+{# L'admin peut :                                               #}
+{#   - voir les stats globales                                  #}
+{#   - moderer les utilisateurs (suspendre, reactiver, role)    #}
+{#   - moderer les annonces (supprimer, marquer livree)         #}
+{#   - consulter les derniers logs                              #}
+{# ============================================================ #}
+
+{% extends 'base.html' %}
+{% block title %}Administration{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 mb-5 px-4">
+
+    {# --- Titre --- #}
+        <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-shield-lock text-danger"></i> Panneau d'administration
+        </h2>
+                <div>
+            <a href="{{ url_for('admin.ontologie_liste') }}"
+               class="btn btn-outline-success btn-sm me-2">
+                <i class="bi bi-diagram-3"></i> Ontologie
+            </a>
+            <a href="{{ url_for('admin.anomalies') }}"
+               class="btn btn-outline-warning btn-sm me-2">
+                <i class="bi bi-exclamation-triangle"></i> Anomalies de prix
+            </a>
+            <a href="{{ url_for('admin.rapport') }}"
+               class="btn btn-outline-info btn-sm me-2">
+                <i class="bi bi-clipboard-data"></i> Rapport
+            </a>
+                        <a href="{{ url_for('admin.ml_recommandation') }}"
+               class="btn btn-outline-primary btn-sm me-2">
+                <i class="bi bi-cpu"></i> IA - Reco
+            </a>
+                        <a href="{{ url_for('admin.ml_nlp') }}"
+               class="btn btn-outline-primary btn-sm me-2">
+                <i class="bi bi-chat-left-text"></i> IA - NLP
+            </a>
+            <a href="{{ url_for('admin.ml_anomalies_if') }}"
+               class="btn btn-outline-primary btn-sm me-2">
+                <i class="bi bi-diagram-2"></i> IA - Anomalies
+            </a>
+            <a href="{{ url_for('admin.logs') }}" class="btn btn-outline-dark btn-sm">
+                <i class="bi bi-journal-text"></i> Logs
+            </a>
+        </div>
+    </div>
+
+    {# ============ STATISTIQUES ============ #}
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card p-3 text-center">
+                <h3>{{ nb_users }}</h3>
+                <p class="mb-0 text-muted">Utilisateurs</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card p-3 text-center">
+                <h3 class="text-danger">{{ nb_users_suspendus }}</h3>
+                <p class="mb-0 text-muted">Suspendus</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card p-3 text-center">
+                <h3>{{ nb_annonces }}</h3>
+                <p class="mb-0 text-muted">Annonces</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card p-3 text-center">
+                <h3>{{ nb_reservations }}</h3>
+                <p class="mb-0 text-muted">Reservations</p>
+            </div>
+        </div>
+    </div>
+
+    {# ============ ONGLETS ============ #}
+    <ul class="nav nav-tabs mb-3" id="adminTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-users">
+                <i class="bi bi-people"></i> Utilisateurs ({{ nb_users }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-annonces">
+                <i class="bi bi-list-ul"></i> Annonces ({{ nb_annonces }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-reservations">
+                <i class="bi bi-hand-index-thumb"></i> Reservations ({{ nb_reservations }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-logs">
+                <i class="bi bi-journal-text"></i> Journal (10 derniers)
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+        {# ============ TAB UTILISATEURS ============ #}
+        <div class="tab-pane fade show active" id="tab-users">
+            <div class="card p-3">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nom</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Ville</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                                <tr {% if u.est_suspendu %}class="table-danger"{% endif %}>
+                                    <td>{{ u.id }}</td>
+                                    <td>
+                                        {{ u.nom }}
+                                        {% if u.is_admin() %}
+                                            <span class="badge bg-danger ms-1">ADMIN</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><small>{{ u.email }}</small></td>
+                                    <td>
+                                        {# Formulaire pour changer le role directement #}
+                                        <form method="POST"
+                                              action="{{ url_for('admin.changer_role', id=u.id) }}"
+                                              style="display:inline;">
+                                            <select name="role" class="form-select form-select-sm"
+                                                    style="width: auto; display: inline-block;"
+                                                    onchange="this.form.submit()">
+                                                {% for r in ['particulier','commercant','restaurant','ong','admin'] %}
+                                                    <option value="{{ r }}" {% if u.role == r %}selected{% endif %}>
+                                                        {{ r }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </form>
+                                    </td>
+                                    <td><small>{{ u.ville }}, {{ u.pays }}</small></td>
+                                    <td>
+                                        {% if u.est_suspendu %}
+                                            <span class="badge bg-danger">SUSPENDU</span>
+                                            {% if u.motif_suspension %}
+                                                <br><small class="text-muted">{{ u.motif_suspension }}</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-success">Actif</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if not u.is_admin() %}
+                                            {% if u.est_suspendu %}
+                                                {# Bouton reactiver #}
+                                                <form method="POST"
+                                                      action="{{ url_for('admin.reactiver_user', id=u.id) }}"
+                                                      style="display:inline;">
+                                                    <button class="btn btn-sm btn-outline-success" title="Reactiver">
+                                                        <i class="bi bi-unlock"></i>
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                {# Bouton suspendre avec motif (modal) #}
+                                                <button class="btn btn-sm btn-outline-warning"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#modalSusp{{ u.id }}"
+                                                        title="Suspendre">
+                                                    <i class="bi bi-slash-circle"></i>
+                                                </button>
+                                            {% endif %}
+
+                                            {# Bouton supprimer definitivement #}
+                                            <form method="POST"
+                                                  action="{{ url_for('admin.supprimer_user', id=u.id) }}"
+                                                  style="display:inline;"
+                                                  onsubmit="return confirm('Supprimer definitivement cet utilisateur et toutes ses annonces ?');">
+                                                <button class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                                {# Modal pour motif de suspension #}
+                                {% if not u.is_admin() and not u.est_suspendu %}
+                                    <div class="modal fade" id="modalSusp{{ u.id }}" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <form method="POST"
+                                                      action="{{ url_for('admin.suspendre_user', id=u.id) }}">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Suspendre {{ u.nom }}</h5>
+                                                        <button class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <label class="form-label">Motif de la suspension *</label>
+                                                        <textarea class="form-control" name="motif"
+                                                                  rows="3" required
+                                                                  placeholder="Ex: Annonces non conformes, comportement abusif..."></textarea>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary"
+                                                                data-bs-dismiss="modal">Annuler</button>
+                                                        <button class="btn btn-warning">Suspendre</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {# ============ TAB ANNONCES ============ #}
+        <div class="tab-pane fade" id="tab-annonces">
+            <div class="card p-3">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Produit</th>
+                                <th>Auteur</th>
+                                <th>Ville</th>
+                                <th>Urgence</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in annonces %}
+                                <tr>
+                                    <td>{{ a.id }}</td>
+                                    <td>
+                                        <a href="{{ url_for('annonces.detail', id=a.id) }}">
+                                            {{ a.produit }}
+                                        </a>
+                                    </td>
+                                    <td><small>{{ a.user.nom }}</small></td>
+                                    <td><small>{{ a.ville }}, {{ a.pays }}</small></td>
+                                    <td>
+                                        <span class="badge badge-{{ a.urgence }}">{{ a.urgence|upper }}</span>
+                                    </td>
+                                    <td>
+                                        {% if a.statut == 'publiee' %}
+                                            <span class="badge bg-success">Publiee</span>
+                                        {% elif a.statut == 'reservee' %}
+                                            <span class="badge bg-warning text-dark">Reservee</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Livree</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if a.statut != 'livree' %}
+                                            <form method="POST"
+                                                  action="{{ url_for('admin.marquer_livree', id=a.id) }}"
+                                                  style="display:inline;">
+                                                <button class="btn btn-sm btn-outline-success"
+                                                        title="Marquer livree">
+                                                    <i class="bi bi-check2-circle"></i>
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        <form method="POST"
+                                              action="{{ url_for('admin.supprimer_annonce', id=a.id) }}"
+                                              style="display:inline;"
+                                              onsubmit="return confirm('Supprimer cette annonce ?');">
+                                            <button class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {# ============ TAB RESERVATIONS ============ #}
+        <div class="tab-pane fade" id="tab-reservations">
+            <div class="card p-3">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Annonce</th>
+                            <th>Reserve par</th>
+                            <th>Date</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in reservations %}
+                            <tr>
+                                <td>{{ r.id }}</td>
+                                <td>{{ r.annonce.produit if r.annonce else '-' }}</td>
+                                <td>{{ r.user.nom if r.user else '-' }}</td>
+                                <td>{{ r.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td><span class="badge bg-info text-dark">{{ r.statut }}</span></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# ============ TAB LOGS ============ #}
+        <div class="tab-pane fade" id="tab-logs">
+            <div class="card p-3">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Admin</th>
+                            <th>Action</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in derniers_logs %}
+                            <tr>
+                                <td><small>{{ l.date_action.strftime('%d/%m/%Y %H:%M') }}</small></td>
+                                <td>{{ l.admin.nom if l.admin else '?' }}</td>
+                                <td><span class="badge bg-secondary">{{ l.type_action }}</span></td>
+                                <td><small>{{ l.description }}</small></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

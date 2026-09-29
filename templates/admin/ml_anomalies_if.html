@@ -1,0 +1,169 @@
+﻿{% extends 'base.html' %}
+{% block title %}Isolation Forest - Anomalies{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-diagram-2 text-success"></i> Detection d'anomalies - Isolation Forest</h2>
+        <a href="{{ url_for('admin.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Admin
+        </a>
+    </div>
+
+    <p class="text-muted">
+        Modele non supervise (Isolation Forest) qui isole les annonces
+        aberrantes dans un espace multi-dimensionnel
+        (prix, categorie, urgence, jours restants, quantite).
+        Comparaison avec MAD et Z-classique.
+    </p>
+
+    {# --- Entrainement --- #}
+    <div class="card p-4 mb-4">
+        <h5>Entrainement du modele</h5>
+        <form method="POST" action="{{ url_for('admin.ml_anomalies_if_entrainer') }}">
+            <button class="btn btn-vert">
+                <i class="bi bi-play-circle"></i>
+                {% if metriques %}Reentrainer{% else %}Entrainer{% endif %} l'Isolation Forest
+            </button>
+            <small class="text-muted d-block mt-2">
+                Il faut au moins 5 annonces en vente dans la base.
+            </small>
+        </form>
+    </div>
+
+    {% if metriques %}
+        {# --- Metriques IF --- #}
+        <h4>Metriques du modele</h4>
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card p-3 text-center">
+                    <h3 class="text-success">{{ metriques.nb_annonces }}</h3>
+                    <small class="text-muted">Annonces analysees</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 text-center">
+                    <h3 class="text-danger">{{ metriques.nb_anomalies_detectees }}</h3>
+                    <small class="text-muted">Anomalies detectees</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 text-center">
+                    <h3>{{ metriques.pourcentage_anomalies }}%</h3>
+                    <small class="text-muted">Taux d'anomalies</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3 text-center">
+                    <h3>{{ metriques.nb_features }}</h3>
+                    <small class="text-muted">Features utilisees</small>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if comparaison %}
+        {# --- Tableau comparatif --- #}
+        <div class="card p-4 mb-4">
+            <h5><i class="bi bi-bar-chart"></i> Comparaison des 3 methodes</h5>
+            <table class="table table-bordered text-center">
+                <thead>
+                    <tr>
+                        <th>Methode</th>
+                        <th>Type</th>
+                        <th>Anomalies detectees</th>
+                        <th>Breakdown point</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Z-classique</strong></td>
+                        <td>Statistique</td>
+                        <td>{{ comparaison.nb_v1 }}</td>
+                        <td>0%</td>
+                    </tr>
+                    <tr>
+                        <td><strong>MAD</strong></td>
+                        <td>Statistique robuste</td>
+                        <td>{{ comparaison.nb_v2 }}</td>
+                        <td>50%</td>
+                    </tr>
+                    <tr class="table-success">
+                        <td><strong>Isolation Forest</strong></td>
+                        <td>ML non supervise</td>
+                        <td>{{ comparaison.nb_v3 }}</td>
+                        <td>Tres eleve</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="alert alert-info small mb-0">
+                <strong>Analyse :</strong>
+                Sur {{ comparaison.nb_v1 + comparaison.nb_v2 + comparaison.nb_v3 }} detections cumulees,
+                <strong>{{ comparaison.consensus|length }}</strong> annonces sont signalees par les 3 methodes
+                (consensus fort).
+                <br>
+                <strong>{{ comparaison.if_uniquement|length }}</strong> annonces sont detectees par
+                Isolation Forest uniquement (anomalies multi-dimensionnelles invisibles aux methodes statistiques).
+            </div>
+        </div>
+
+        {# --- Détections IF --- #}
+        <div class="card p-3">
+            <h5><i class="bi bi-shield-exclamation text-danger"></i> Anomalies detectees par Isolation Forest</h5>
+            {% if comparaison.v3_if %}
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Produit</th>
+                            <th>Categorie</th>
+                            <th>Prix</th>
+                            <th>Ville</th>
+                            <th>Score</th>
+                            <th>Priorite</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in comparaison.v3_if %}
+                            <tr {% if r.annonce.id in comparaison.if_uniquement %}class="table-warning"{% endif %}>
+                                <td>
+                                    <a href="{{ url_for('annonces.detail', id=r.annonce.id) }}">
+                                        {{ r.annonce.produit }}
+                                    </a>
+                                    {% if r.annonce.id in comparaison.if_uniquement %}
+                                        <br><small class="text-danger">⚠ Unique a IF</small>
+                                    {% endif %}
+                                </td>
+                                <td><small>{{ r.annonce.categorie }}</small></td>
+                                <td><strong>{{ r.annonce.prix }} FCFA</strong></td>
+                                <td><small>{{ r.annonce.ville }}</small></td>
+                                <td><code>{{ r.score }}</code></td>
+                                <td>
+                                    {% if r.score < -0.15 %}
+                                        <span class="badge bg-danger">Critique</span>
+                                    {% elif r.score < -0.05 %}
+                                        <span class="badge bg-warning">Elevee</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Moyenne</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="alert alert-success mb-0">
+                    <i class="bi bi-check-circle"></i>
+                    Aucune anomalie detectee par Isolation Forest.
+                </div>
+            {% endif %}
+        </div>
+    {% elif metriques %}
+        <div class="alert alert-warning">
+            Le modele est entraine mais aucune comparaison n'a pu etre generee.
+            Rafraichis la page.
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

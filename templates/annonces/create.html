@@ -1,0 +1,231 @@
+{# ============================================================ #}
+{# FORMULAIRE DE PUBLICATION D'ANNONCE                          #}
+{# ------------------------------------------------------------ #}
+{# Inclut :                                                     #}
+{#   - infos produit (nom, description, categorie, etat)        #}
+{#   - quantite, unite, prix, type d'offre                      #}
+{#   - date de peremption                                       #}
+{#   - upload photo (input type=file)                           #}
+{#   - localisation (par defaut celle de l'utilisateur)         #}
+{# ============================================================ #}
+
+{% extends 'base.html' %}
+{% block title %}Publier une annonce{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5" style="max-width: 800px;">
+    <div class="card p-4">
+
+        <h3 class="mb-4">
+            <i class="bi bi-plus-circle text-success"></i> Publier une annonce
+        </h3>
+
+        {# IMPORTANT : enctype="multipart/form-data" est OBLIGATOIRE
+           pour que le navigateur puisse envoyer un fichier (photo). #}
+        <form method="POST" enctype="multipart/form-data" id="formAnnonce">
+
+            {# ============ INFOS PRODUIT ============ #}
+            <h6 class="text-muted mb-3">Informations sur le produit</h6>
+
+            <div class="mb-3">
+                <label for="produit" class="form-label">Nom du produit *</label>
+                <input type="text" class="form-control" id="produit" name="produit"
+                       required placeholder="Ex: Tomates fraiches, Kilichi de boeuf...">
+            </div>
+
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description"
+                          rows="3" placeholder="Qualite, origine, raison du surplus..."></textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="categorie" class="form-label">Categorie *</label>
+                    <select class="form-select" id="categorie" name="categorie" required>
+                        <option value="legume">Legume</option>
+                        <option value="fruit">Fruit</option>
+                        <option value="laitier">Produit laitier</option>
+                        <option value="viande">Viande / Poisson</option>
+                        <option value="cereale">Cereale</option>
+                        <option value="boulangerie">Boulangerie</option>
+                        <option value="plat_cuisine">Plat cuisine</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="etat_produit" class="form-label">Etat du produit *</label>
+                    <select class="form-select" id="etat_produit" name="etat_produit" required>
+                        <option value="cru">Cru / non prepare</option>
+                        <option value="prepare">Prepare / cuit / transforme</option>
+                    </select>
+                </div>
+            </div>
+
+            {# ============ QUANTITE ET PRIX ============ #}
+            <h6 class="text-muted mb-3 mt-4">Quantite et prix</h6>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="quantite" class="form-label">Quantite *</label>
+                    <input type="number" class="form-control" id="quantite" name="quantite"
+                           step="0.1" min="0.1" required placeholder="Ex: 5">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="unite" class="form-label">Unite *</label>
+                    <select class="form-select" id="unite" name="unite" required>
+                        <option value="kg">kg</option>
+                        <option value="litre">litre</option>
+                        <option value="piece">piece</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="type_offre" class="form-label">Type d'offre *</label>
+                    <select class="form-select" id="type_offre" name="type_offre"
+                            required onchange="togglePrix()">
+                        <option value="don">Don (gratuit)</option>
+                        <option value="vente">Vente a prix reduit</option>
+                    </select>
+                </div>
+            </div>
+
+            {# Champ prix (visible uniquement si type_offre = vente) #}
+            <div class="mb-3" id="blocPrix" style="display:none;">
+                <label for="prix" class="form-label">Prix total (FCFA)</label>
+                <input type="number" class="form-control" id="prix" name="prix"
+                       step="1" min="0" value="0">
+            </div>
+
+            {# ============ PEREMPTION ============ #}
+            <h6 class="text-muted mb-3 mt-4">Peremption et photo</h6>
+
+            <div class="mb-3">
+                <label for="date_peremption" class="form-label">Date de peremption *</label>
+                <input type="date" class="form-control" id="date_peremption"
+                       name="date_peremption" required>
+                <small class="text-muted">
+                    Le niveau d'urgence est calcule automatiquement.
+                </small>
+            </div>
+
+                        <div class="mb-3">
+                <label for="photo" class="form-label">Photo du produit</label>
+                <input type="file" class="form-control" id="photo" name="photo"
+                       accept="image/png,image/jpeg,image/jpg,image/gif,image/webp">
+                <small class="text-muted">
+                    Formats acceptes : JPG, PNG, GIF, WEBP. Max 5 Mo.
+                </small>
+                <button type="button" class="btn btn-outline-primary btn-sm mt-2"
+                        id="btnAnalyser">
+                    <i class="bi bi-camera"></i> Analyser la fraicheur (IA)
+                </button>
+                <div id="resultatAnalyse" class="mt-3" style="display:none;">
+                    <div class="alert" id="analyseAlert">
+                        <h6>Score de fraicheur : <span id="scoreValeur"></span>/100</h6>
+                        <div class="progress mb-2">
+                            <div class="progress-bar" id="scoreBarre" style="width: 0%"></div>
+                        </div>
+                        <p class="small mb-1" id="analyseConseil"></p>
+                        <small class="text-muted" id="analyseDetails"></small>
+                    </div>
+                </div>
+            </div>
+
+            {# ============ LOCALISATION ============ #}
+            <h6 class="text-muted mb-3 mt-4">Localisation</h6>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Pays</label>
+                    <input type="text" class="form-control" value="{{ current_user.pays }}" disabled>
+                    <small class="text-muted">Defini a l'inscription</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="ville" class="form-label">Ville de l'annonce *</label>
+                    <select class="form-select" id="ville" name="ville" required>
+                        <option value="{{ current_user.ville }}">
+                            {{ current_user.ville }} (par defaut)
+                        </option>
+                    </select>
+                    <small class="text-muted">
+                        Par defaut votre ville. Contactez l'admin pour changer.
+                    </small>
+                </div>
+            </div>
+
+            {# ============ BOUTON ============ #}
+            <button type="submit" class="btn btn-vert w-100 mt-3">
+                <i class="bi bi-check-circle"></i> Publier l'annonce
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // --- Toggle prix ---
+    function togglePrix() {
+        const typeOffre = document.getElementById('type_offre').value;
+        const blocPrix = document.getElementById('blocPrix');
+        blocPrix.style.display = (typeOffre === 'vente') ? 'block' : 'none';
+    }
+    togglePrix();
+
+    // --- Date passee ---
+    document.getElementById('formAnnonce').addEventListener('submit', function(e) {
+        const dateInput = document.getElementById('date_peremption');
+        const dateChoisie = new Date(dateInput.value);
+        const aujourdhui = new Date();
+        aujourdhui.setHours(0, 0, 0, 0);
+        if (dateChoisie < aujourdhui) {
+            e.preventDefault();
+            alert("La date de peremption ne peut pas etre dans le passe.");
+        }
+    });
+
+    // --- Analyse de fraicheur par IA ---
+    document.getElementById('btnAnalyser').addEventListener('click', async function() {
+        const input = document.getElementById('photo');
+        if (!input.files || input.files.length === 0) {
+            alert("Veuillez d'abord choisir une photo.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('image', input.files[0]);
+
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Analyse IA...';
+
+        try {
+            const reponse = await fetch('/api/vision/fraicheur', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await reponse.json();
+
+            if (data.erreur) {
+                alert("Erreur : " + data.erreur);
+                return;
+            }
+
+            document.getElementById('resultatAnalyse').style.display = 'block';
+            const alert = document.getElementById('analyseAlert');
+            alert.className = 'alert alert-' + data.couleur;
+
+            document.getElementById('scoreValeur').textContent = data.score;
+            document.getElementById('scoreBarre').style.width = data.score + '%';
+            document.getElementById('scoreBarre').className = 'progress-bar bg-' + data.couleur;
+            document.getElementById('analyseConseil').textContent = data.conseil;
+            document.getElementById('analyseDetails').textContent =
+                `Saturation: ${data.details.saturation}% | Nettete: ${data.details.nettete}% | Zones abimees: ${data.details.zones_terne}%`;
+        } catch (e) {
+            alert("Erreur reseau : " + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-camera"></i> Analyser la fraicheur (IA)';
+        }
+    });
+</script>
+{% endblock %}

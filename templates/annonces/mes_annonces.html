@@ -1,0 +1,127 @@
+{# ============================================================ #}
+{# MES ANNONCES                                                 #}
+{# ------------------------------------------------------------ #}
+{# Liste des annonces publiees par l'utilisateur connecte.      #}
+{# Permet de voir, modifier ou supprimer ses propres annonces.  #}
+{# ============================================================ #}
+
+{% extends 'base.html' %}
+{% block title %}Mes annonces{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+
+    {# --- Titre + bouton publier --- #}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-collection text-success"></i> Mes annonces</h2>
+        <a href="{{ url_for('annonces.create') }}" class="btn btn-vert">
+            <i class="bi bi-plus-circle"></i> Publier
+        </a>
+    </div>
+
+    {# --- Message si aucune annonce --- #}
+    {% if not annonces %}
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle"></i>
+            Vous n'avez pas encore publie d'annonce.
+            <a href="{{ url_for('annonces.create') }}" class="alert-link">
+                Publier ma premiere annonce
+            </a>
+        </div>
+    {% else %}
+
+        {# --- Tableau des annonces --- #}
+        <div class="card p-3">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Photo</th>
+                            <th>Produit</th>
+                            <th>Ville</th>
+                            <th>Quantite</th>
+                            <th>Peremption</th>
+                            <th>Urgence</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in annonces %}
+                            <tr>
+                                {# Miniature #}
+                                <td>
+                                    {% if a.photo_filename %}
+                                        <img src="{{ url_for('static', filename='uploads/' + a.photo_filename) }}"
+                                             style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;">
+                                    {% else %}
+                                        <div class="d-flex align-items-center justify-content-center bg-light"
+                                             style="width: 50px; height: 50px; border-radius: 6px;">
+                                            <i class="bi bi-image text-muted"></i>
+                                        </div>
+                                    {% endif %}
+                                </td>
+
+                                {# Produit #}
+                                <td>
+                                    <a href="{{ url_for('annonces.detail', id=a.id) }}"
+                                       class="text-decoration-none fw-bold">
+                                        {{ a.produit }}
+                                    </a>
+                                    <br>
+                                    <small class="text-muted">{{ a.categorie|capitalize }}</small>
+                                </td>
+
+                                {# Ville #}
+                                <td>{{ a.ville }}<br><small class="text-muted">{{ a.pays }}</small></td>
+
+                                {# Quantite #}
+                                <td>{{ a.quantite }} {{ a.unite }}</td>
+
+                                {# Peremption #}
+                                <td>{{ a.date_peremption.strftime('%d/%m/%Y') }}</td>
+
+                                {# Urgence #}
+                                <td>
+                                    <span class="badge badge-{{ a.urgence }}">
+                                        {{ a.urgence|upper }}
+                                    </span>
+                                </td>
+
+                                {# Statut #}
+                                <td>
+                                    {% if a.statut == 'publiee' %}
+                                        <span class="badge bg-success">Publiee</span>
+                                    {% elif a.statut == 'reservee' %}
+                                        <span class="badge bg-warning text-dark">Reservee</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Livree</span>
+                                    {% endif %}
+                                </td>
+
+                                {# Actions #}
+                                <td>
+                                    <a href="{{ url_for('annonces.detail', id=a.id) }}"
+                                       class="btn btn-sm btn-outline-primary" title="Voir">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+
+                                    <form method="POST"
+                                          action="{{ url_for('annonces.supprimer', id=a.id) }}"
+                                          style="display:inline;"
+                                          onsubmit="return confirm('Supprimer cette annonce ?');">
+                                        <button class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

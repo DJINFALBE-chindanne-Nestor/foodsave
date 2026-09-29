@@ -1,0 +1,221 @@
+{# ============================================================ #}
+{# DETAIL D'UNE ANNONCE + CONSEILS PERSONNALISES               #}
+{# ============================================================ #}
+
+{% extends 'base.html' %}
+{% block title %}{{ annonce.produit }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5" style="max-width: 1000px;">
+
+    {# Lien retour #}
+    <a href="{{ url_for('annonces.index') }}" class="btn btn-outline-secondary btn-sm mb-3">
+        <i class="bi bi-arrow-left"></i> Retour aux annonces
+    </a>
+
+    <div class="row">
+
+        {# ============ COLONNE GAUCHE : PHOTO + INFOS ============ #}
+        <div class="col-md-7">
+            <div class="card">
+
+                {# Photo : si dispo, sinon placeholder. #}
+                {% if annonce.photo_filename %}
+                    <img src="{{ url_for('static', filename='uploads/' + annonce.photo_filename) }}"
+                         class="card-img-top" alt="{{ annonce.produit }}"
+                         style="max-height: 400px; object-fit: cover;">
+                {% else %}
+                    <div class="d-flex align-items-center justify-content-center bg-light"
+                         style="height: 300px;">
+                        <i class="bi bi-image text-muted" style="font-size: 5rem;"></i>
+                    </div>
+                {% endif %}
+
+                <div class="card-body">
+
+                    {# Badges #}
+                    <div class="mb-3">
+                        <span class="badge badge-{{ annonce.urgence }} fs-6">
+                            {{ annonce.urgence|upper }}
+                        </span>
+                        {% if annonce.type_offre == 'don' %}
+                            <span class="badge bg-success fs-6">DON GRATUIT</span>
+                        {% else %}
+                            <span class="badge bg-info text-dark fs-6">VENTE</span>
+                        {% endif %}
+                        <span class="badge bg-secondary fs-6">
+                            {{ 'Cru' if annonce.etat_produit == 'cru' else 'Prepare' }}
+                        </span>
+                        <span class="badge bg-dark fs-6">{{ annonce.statut|upper }}</span>
+                    </div>
+
+                    {# Titre #}
+                    <h2>{{ annonce.produit }}</h2>
+
+                    {# Description #}
+                    {% if annonce.description %}
+                        <p class="text-muted">{{ annonce.description }}</p>
+                    {% endif %}
+
+                    <hr>
+
+                    {# Infos detaillees #}
+                    <div class="row">
+                        <div class="col-6">
+                            <p><strong><i class="bi bi-tag"></i> Categorie :</strong><br>
+                               {{ annonce.categorie|capitalize }}</p>
+                            <p><strong><i class="bi bi-box-seam"></i> Quantite :</strong><br>
+                               {{ annonce.quantite }} {{ annonce.unite }}</p>
+                            <p><strong><i class="bi bi-cash"></i> Prix :</strong><br>
+                               {% if annonce.prix == 0 %}
+                                   <span class="text-success fw-bold">Gratuit (don)</span>
+                               {% else %}
+                                   <span class="text-primary fw-bold">{{ annonce.prix }} FCFA</span>
+                               {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-6">
+                            <p><strong><i class="bi bi-geo-alt"></i> Localisation :</strong><br>
+                               {{ annonce.ville }}<br>
+                               <small class="text-muted">{{ annonce.region }}, {{ annonce.pays }}</small></p>
+                            <p><strong><i class="bi bi-calendar-x"></i> Peremption :</strong><br>
+                               {{ annonce.date_peremption.strftime('%d/%m/%Y') }}</p>
+                            <p><strong><i class="bi bi-clock"></i> Publie le :</strong><br>
+                               {{ annonce.created_at.strftime('%d/%m/%Y a %H:%M') }}</p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    {# Infos du proprietaire #}
+                    <h6 class="text-muted">Publie par</h6>
+                    <p class="mb-1">
+                        <strong>{{ annonce.user.nom }}</strong>
+                        <span class="badge bg-secondary">{{ annonce.user.role }}</span>
+                    </p>
+
+                    {% if annonce.user.telephone %}
+                        <p class="mb-1">
+                            <i class="bi bi-telephone"></i>
+                            {% if current_user.is_authenticated %}
+                                {{ annonce.user.telephone }}
+                            {% else %}
+                                {{ annonce.user.telephone_masque() }}
+                                <small class="text-muted d-block">
+                                    Connectez-vous pour voir le numero complet.
+                                </small>
+                            {% endif %}
+                        </p>
+                    {% endif %}
+
+                    <p class="text-muted small">
+                        <i class="bi bi-envelope"></i>
+                        {% if current_user.is_authenticated %}
+                            {{ annonce.user.email }}
+                        {% else %}
+                            {{ annonce.user.email_masque() }}
+                        {% endif %}
+                    </p>
+
+                </div>
+            </div>
+        </div>
+
+        {# ============ COLONNE DROITE : CONSEILS + ACTIONS ============ #}
+        <div class="col-md-5">
+
+            {# --- Bloc reservation --- #}
+            {% if annonce.statut == 'publiee' %}
+                {% if current_user.is_authenticated %}
+                    {% if annonce.user_id == current_user.id %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            C'est votre annonce.
+                        </div>
+                        <form method="POST"
+                              action="{{ url_for('annonces.supprimer', id=annonce.id) }}"
+                              onsubmit="return confirm('Supprimer cette annonce ?');">
+                            <button class="btn btn-outline-danger w-100">
+                                <i class="bi bi-trash"></i> Supprimer mon annonce
+                            </button>
+                        </form>
+                    {% else %}
+                        <form method="POST"
+                              action="{{ url_for('annonces.reserver', id=annonce.id) }}">
+                            <button class="btn btn-vert w-100 btn-lg mb-3">
+                                <i class="bi bi-hand-index-thumb"></i> Reserver cette annonce
+                            </button>
+                        </form>
+                        <a href="{{ url_for('messages.nouveau', dest=annonce.user.id, annonce=annonce.id) }}"
+                           class="btn btn-outline-primary w-100 mb-3">
+                            <i class="bi bi-envelope"></i> Contacter le proprietaire
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}"
+                       class="btn btn-vert w-100 btn-lg mb-3">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        Connectez-vous pour reserver
+                    </a>
+                {% endif %}
+            {% elif annonce.statut == 'reservee' %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-clock-history"></i>
+                    Cette annonce est deja reservee.
+                </div>
+            {% elif annonce.statut == 'livree' %}
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i>
+                    Cette annonce a ete livree. Merci !
+                </div>
+            {% endif %}
+
+            {# --- CONSEILS PERSONNALISES --- #}
+            <div class="card p-3 mt-3">
+                <h5 class="mb-3">
+                    <i class="bi bi-lightbulb text-warning"></i>
+                    Conseils de conservation
+                </h5>
+
+                {# Contexte : climat + region #}
+                <div class="alert alert-light border mb-3">
+                    <small>
+                        <strong>Region :</strong> {{ conseils.region }}<br>
+                        <strong>Climat :</strong> {{ conseils.climat }}<br>
+                        <strong>Risques :</strong> {{ conseils.risques_region }}
+                    </small>
+                </div>
+
+                {# Conseils generaux du produit #}
+                <h6 class="text-success">Pour ce produit :</h6>
+                <p class="small">{{ conseils.conseil_produit.message }}</p>
+
+                <p class="small mb-2">
+                    <strong>Duree :</strong> {{ conseils.conseil_produit.duree }}
+                </p>
+
+                {% if conseils.conseil_produit.astuce %}
+                    <div class="alert alert-warning small mb-0">
+                        <i class="bi bi-stars"></i>
+                        <strong>Astuce :</strong> {{ conseils.conseil_produit.astuce }}
+                    </div>
+                {% endif %}
+            </div>
+
+            {# --- STRATEGIES REGIONALES --- #}
+            <div class="card p-3 mt-3">
+                <h5 class="mb-3">
+                    <i class="bi bi-geo"></i>
+                    Strategies pour votre region
+                </h5>
+                <ul class="small mb-0">
+                    {% for strategie in conseils.conseils_region %}
+                        <li class="mb-2">{{ strategie }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

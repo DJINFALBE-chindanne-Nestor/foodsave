@@ -1,0 +1,55 @@
+New-Item -ItemType Directory -Force -Path templates\legal | Out-Null
+
+$conf = @'
+{% extends 'base.html' %}
+{% block title %}Politique de confidentialite{% endblock %}
+{% block content %}
+<div class="container mt-5 mb-5" style="max-width: 850px;">
+    <h2>Politique de confidentialite</h2>
+    <p class="text-muted">Derniere mise a jour : 29 septembre 2026</p>
+
+    <h4>1. Donnees collectees</h4>
+    <p>FoodSave collecte les donnees suivantes :</p>
+    <ul>
+        <li><strong>Donnees d'identification</strong> : nom, email, mot de passe (hache avec bcrypt).</li>
+        <li><strong>Donnees de localisation</strong> : ville, region, pays.</li>
+        <li><strong>Donnees de contact</strong> : numero de telephone (optionnel).</li>
+        <li><strong>Donnees d'usage</strong> : annonces publiees, reservations, messages.</li>
+    </ul>
+
+    <h4>2. Finalites du traitement</h4>
+    <ul>
+        <li>Mise en relation entre donateurs et beneficiaires.</li>
+        <li>Securisation de l'acces a votre compte.</li>
+        <li>Lutte contre le gaspillage alimentaire.</li>
+    </ul>
+
+    <h4>3. Base legale</h4>
+    <p>Votre consentement explicite, recueilli lors de l'inscription.</p>
+
+    <h4>4. Vos droits (RGPD)</h4>
+    <ul>
+        <li><strong>Droit d'acces</strong> : consultez vos donnees sur <a href="/mes-donnees">Mes donnees</a>.</li>
+        <li><strong>Droit a la portabilite</strong> : exportez vos donnees en JSON.</li>
+        <li><strong>Droit a l'effacement</strong> : supprimez votre compte et toutes vos donnees.</li>
+        <li><strong>Droit de rectification</strong> : contactez l'administrateur.</li>
+    </ul>
+
+    <h4>5. Securite</h4>
+    <ul>
+        <li>Mots de passe haches avec bcrypt (12 rounds).</li>
+        <li>Protection anti brute-force (5 tentatives / 15 min).</li>
+        <li>Masquage des donnees sensibles en public.</li>
+        <li>Connexions chiffrees via HTTPS en production.</li>
+    </ul>
+
+    <h4>6. Duree de conservation</h4>
+    <p>Vos donnees sont conservees tant que votre compte existe. Vous pouvez demander leur suppression a tout moment.</p>
+
+    <h4>7. Contact</h4>
+    <p>Pour toute question : <a href="mailto:admin@foodsave.com">admin@foodsave.com</a></p>
+</div>
+{% endblock %}
+'@
+Set-Content -Path templates\legal\confidentialite.html -Value $conf -Encoding UTF8
+Write-Host "confidentialite.html :" (Test-Path templates\legal\confidentialite.html)

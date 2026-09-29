@@ -1,0 +1,257 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport FoodSave</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm 1.8cm;
+        }
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 11pt;
+            color: #222;
+            line-height: 1.4;
+        }
+        .entete {
+            border-bottom: 3px solid #2e7d32;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .entete h1 {
+            color: #2e7d32;
+            font-size: 22pt;
+            margin: 0;
+        }
+        .entete .sous-titre {
+            color: #666;
+            font-size: 11pt;
+            margin-top: 4px;
+        }
+        .entete .date-rapport {
+            float: right;
+            font-size: 11pt;
+            color: #444;
+            text-align: right;
+        }
+        h2 {
+            color: #2e7d32;
+            font-size: 14pt;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 4px;
+            margin-top: 25px;
+            margin-bottom: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+        th {
+            background-color: #2e7d32;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-size: 10pt;
+        }
+        td {
+            padding: 7px 8px;
+            border-bottom: 1px solid #eee;
+            font-size: 10pt;
+        }
+        .kpi-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 6px 0;
+            margin-bottom: 15px;
+        }
+        .kpi {
+            padding: 12px 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+            background-color: #f9fdf9;
+            width: 25%;
+        }
+        .kpi .valeur {
+            font-size: 22pt;
+            font-weight: bold;
+            color: #2e7d32;
+            display: block;
+        }
+        .kpi .label {
+            font-size: 9pt;
+            color: #666;
+        }
+        .kpi-co2 {
+            background-color: #e8f5e9;
+            border: 1px solid #4caf50;
+        }
+        .note {
+            background-color: #e8f5e9;
+            border-left: 4px solid #2e7d32;
+            padding: 10px 12px;
+            font-size: 9.5pt;
+            margin-top: 15px;
+        }
+        .footer-info {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 8.5pt;
+            color: #888;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="entete">
+    <div class="date-rapport">
+        Rapport genere le<br>
+        <strong>{{ date_generation }}</strong>
+    </div>
+    <h1>FoodSave</h1>
+    <div class="sous-titre">
+        Rapport anti-gaspillage alimentaire - Tchad et Cameroun
+    </div>
+</div>
+
+<h2>Rapport du {{ rapport.jour.date.strftime('%d/%m/%Y') }}</h2>
+
+<table class="kpi-table">
+    <tr>
+        <td class="kpi">
+            <span class="valeur">{{ rapport.jour.publications }}</span>
+            <span class="label">PUBLICATIONS</span>
+        </td>
+        <td class="kpi">
+            <span class="valeur">{{ rapport.jour.sauvees }}</span>
+            <span class="label">DENREES SAUVEES</span>
+        </td>
+        <td class="kpi">
+            <span class="valeur">{{ rapport.jour.kg_evites }}</span>
+            <span class="label">KG EVITES</span>
+        </td>
+        <td class="kpi kpi-co2">
+            <span class="valeur">{{ rapport.jour.co2_evite_kg }}</span>
+            <span class="label">KG CO2 EVITES</span>
+        </td>
+    </tr>
+</table>
+
+<h2>Taux de sauvetage</h2>
+<p>
+    Sur <strong>{{ rapport.jour.publications }}</strong> annonces publiees,
+    <strong>{{ rapport.jour.sauvees }}</strong> ont ete sauvees
+    (reservees ou livrees).
+</p>
+<p style="font-size: 10pt;">
+    Formule : tau = annonces sauvees / annonces publiees
+    = {{ rapport.jour.sauvees }} / {{ rapport.jour.publications }}
+    = <strong>{{ (rapport.jour.taux_sauvetage * 100)|round(1) }} %</strong>
+</p>
+
+<h2>Top categories sauvees</h2>
+{% if rapport.jour.top_categories %}
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 8%;">#</th>
+                <th>Categorie</th>
+                <th style="width: 20%;">Annonces</th>
+                <th style="width: 20%;">Volume (kg)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in rapport.jour.top_categories %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><strong>{{ c.categorie|capitalize }}</strong></td>
+                    <td>{{ c.n }}</td>
+                    <td>{{ c.kg }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p style="color: #888;">Aucune categorie sauvee aujourd'hui.</p>
+{% endif %}
+
+<h2>Comparaison avec la veille ({{ rapport.hier.date.strftime('%d/%m/%Y') }})</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Indicateur</th>
+            <th style="width: 20%;">Hier</th>
+            <th style="width: 20%;">Aujourd'hui</th>
+            <th style="width: 20%;">Tendance</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Publications</td>
+            <td>{{ rapport.hier.publications }}</td>
+            <td>{{ rapport.jour.publications }}</td>
+            <td>{% set t = rapport.tendances.publications %}{% if t > 0 %}+{% endif %}{{ t }}%</td>
+        </tr>
+        <tr>
+            <td>Denrees sauvees</td>
+            <td>{{ rapport.hier.sauvees }}</td>
+            <td>{{ rapport.jour.sauvees }}</td>
+            <td>{% set t = rapport.tendances.sauvees %}{% if t > 0 %}+{% endif %}{{ t }}%</td>
+        </tr>
+        <tr>
+            <td>Kg evites</td>
+            <td>{{ rapport.hier.kg_evites }}</td>
+            <td>{{ rapport.jour.kg_evites }}</td>
+            <td>{% set t = rapport.tendances.kg_evites %}{% if t > 0 %}+{% endif %}{{ t }}%</td>
+        </tr>
+        <tr>
+            <td>CO2 evite (kg)</td>
+            <td>{{ rapport.hier.co2_evite_kg }}</td>
+            <td>{{ rapport.jour.co2_evite_kg }}</td>
+            <td>{% set t = rapport.tendances.co2_evite_kg %}{% if t > 0 %}+{% endif %}{{ t }}%</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Cumul sur les 30 derniers jours</h2>
+<table class="kpi-table">
+    <tr>
+        <td class="kpi">
+            <span class="valeur">{{ cumul_30.publications }}</span>
+            <span class="label">PUBLICATIONS</span>
+        </td>
+        <td class="kpi">
+            <span class="valeur">{{ cumul_30.sauvees }}</span>
+            <span class="label">SAUVEES</span>
+        </td>
+        <td class="kpi">
+            <span class="valeur">{{ cumul_30.kg_evites }}</span>
+            <span class="label">KG EVITES</span>
+        </td>
+        <td class="kpi kpi-co2">
+            <span class="valeur">{{ cumul_30.co2_evite_kg }}</span>
+            <span class="label">KG CO2 EVITES</span>
+        </td>
+    </tr>
+</table>
+
+<div class="note">
+    <strong>Methodologie :</strong>
+    L'estimation de l'impact carbone repose sur la formule
+    E_CO2 = S x kappa, ou S est la somme des masses sauvees (en kg)
+    et kappa = {{ rapport.facteur_co2 }} kg CO2e/kg
+    est le facteur d'emission moyen du gaspillage alimentaire
+    (source : FAO). Le taux de sauvetage tau est une proportion
+    dans l'intervalle [0, 1].
+</div>
+
+<div class="footer-info">
+    FoodSave Tchad-Cameroun - Projet academique M1 Intelligence Artificielle Appliquee<br>
+    Ce document est genere automatiquement par la plateforme.
+</div>
+
+</body>
+</html>

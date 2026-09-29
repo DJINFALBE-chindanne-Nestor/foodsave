@@ -1,0 +1,310 @@
+{% extends 'base.html' %}
+{% block title %}Ontologie - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 mb-5 px-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-diagram-3 text-success"></i> Moderation de l'ontologie</h2>
+        <a href="{{ url_for('admin.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Retour admin
+        </a>
+    </div>
+
+    {# --- Stats --- #}
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card p-3 text-center">
+                <h3>{{ stats.total }}</h3>
+                <p class="mb-0 text-muted">Total produits</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card p-3 text-center">
+                <h3 class="text-success">{{ stats.officiels }}</h3>
+                <p class="mb-0 text-muted">Officiels</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card p-3 text-center">
+                <h3 class="text-warning">{{ stats.proposes }}</h3>
+                <p class="mb-0 text-muted">En attente</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card p-3 text-center">
+                <h3 class="text-danger">{{ stats.rejetes }}</h3>
+                <p class="mb-0 text-muted">Rejetes</p>
+            </div>
+        </div>
+    </div>
+
+    {# ============ PRODUITS EN ATTENTE ============ #}
+    {% if proposes %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>{{ proposes|length }} produit(s) en attente de validation</strong>
+            — issus d'annonces utilisateurs.
+        </div>
+
+        <div class="card p-3 mb-4">
+            <h5 class="mb-3">🕓 En attente</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Utilisations</th>
+                            <th>Classe suggeree</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in proposes %}
+                            <tr>
+                                <td>
+                                    <strong>{{ p.nom }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        cree le {{ p.date_creation.strftime('%d/%m/%Y') }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info text-dark">
+                                        {{ p.nb_utilisations }} annonce(s)
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ p.classe }}</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-success"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalValider{{ p.id }}">
+                                        <i class="bi bi-check-circle"></i> Valider
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalRejeter{{ p.id }}">
+                                        <i class="bi bi-x-circle"></i> Rejeter
+                                    </button>
+                                </td>
+                            </tr>
+
+                            {# Modal validation #}
+                            <div class="modal fade" id="modalValider{{ p.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form method="POST"
+                                              action="{{ url_for('admin.ontologie_valider', pid=p.id) }}">
+                                            <div class="modal-header bg-success text-white">
+                                                <h5 class="modal-title">Valider "{{ p.nom }}"</h5>
+                                                <button type="button" class="btn-close btn-close-white"
+                                                        data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Classe</label>
+                                                    <select name="classe" class="form-select">
+                                                        {% for c in ['Legume','Fruit','Viande','Laitier','Cereale','Boulangerie','PlatCuisine','AlimentFrais','AlimentSec','AlimentTransforme','Aliment'] %}
+                                                            <option value="{{ c }}" {% if p.classe == c %}selected{% endif %}>
+                                                                {{ c }}
+                                                            </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Conservation (jours)</label>
+                                                    <input type="number" name="conservation_jours"
+                                                           class="form-control"
+                                                           value="{{ p.conservation_jours or 5 }}">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Saison</label>
+                                                    <select name="saison" class="form-select">
+                                                        {% for s in ['toute_saison','saison_seche','saison_des_pluies','saison_fraiche'] %}
+                                                            <option value="{{ s }}" {% if p.saison == s %}selected{% endif %}>
+                                                                {{ s.replace('_', ' ') }}
+                                                            </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Transformations possibles (separees par virgule)</label>
+                                                    <input type="text" name="transformations" class="form-control"
+                                                           value="{{ p.get_transformations()|join(', ') }}"
+                                                           placeholder="ex: sauce, sechage, conserve">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Produits compatibles (separes par virgule)</label>
+                                                    <input type="text" name="compatibles" class="form-control"
+                                                           value="{{ p.get_compatibles()|join(', ') }}">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Astuce surplus</label>
+                                                    <textarea name="astuce" class="form-control" rows="2">{{ p.astuce or '' }}</textarea>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary"
+                                                        data-bs-dismiss="modal">Annuler</button>
+                                                <button class="btn btn-success">Valider</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {# Modal rejet #}
+                            <div class="modal fade" id="modalRejeter{{ p.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form method="POST"
+                                              action="{{ url_for('admin.ontologie_rejeter', pid=p.id) }}">
+                                            <div class="modal-header bg-danger text-white">
+                                                <h5 class="modal-title">Rejeter "{{ p.nom }}"</h5>
+                                                <button type="button" class="btn-close btn-close-white"
+                                                        data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <label class="form-label">Raison du rejet</label>
+                                                <textarea name="raison" class="form-control" rows="3"
+                                                          placeholder="Ex: doublon, nom invalide, produit non alimentaire..."></textarea>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary"
+                                                        data-bs-dismiss="modal">Annuler</button>
+                                                <button class="btn btn-danger">Rejeter</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+
+    {# ============ PRODUITS OFFICIELS ============ #}
+    <div class="card p-3 mb-4">
+        <h5 class="mb-3">✅ Officiels ({{ officiels|length }})</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Classe</th>
+                        <th>Conservation</th>
+                        <th>Utilisations</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in officiels %}
+                        <tr>
+                            <td><strong>{{ p.nom }}</strong></td>
+                            <td><span class="badge bg-secondary">{{ p.classe }}</span></td>
+                            <td>{{ p.conservation_jours }} j</td>
+                            <td><span class="badge bg-info text-dark">{{ p.nb_utilisations }}</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalModifier{{ p.id }}">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="POST"
+                                      action="{{ url_for('admin.ontologie_supprimer', pid=p.id) }}"
+                                      style="display:inline;"
+                                      onsubmit="return confirm('Supprimer definitivement ce produit ?');">
+                                    <button class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+
+                        {# Modal modification #}
+                        <div class="modal fade" id="modalModifier{{ p.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form method="POST"
+                                          action="{{ url_for('admin.ontologie_modifier', pid=p.id) }}">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Modifier "{{ p.nom }}"</h5>
+                                            <button type="button" class="btn-close"
+                                                    data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="mb-3">
+                                                <label class="form-label">Nom</label>
+                                                <input type="text" name="nom" class="form-control" value="{{ p.nom }}">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Classe</label>
+                                                <select name="classe" class="form-select">
+                                                    {% for c in ['Legume','Fruit','Viande','Laitier','Cereale','Boulangerie','PlatCuisine','AlimentFrais','AlimentSec','AlimentTransforme','Aliment'] %}
+                                                        <option value="{{ c }}" {% if p.classe == c %}selected{% endif %}>{{ c }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Conservation (jours)</label>
+                                                <input type="number" name="conservation_jours"
+                                                       class="form-control"
+                                                       value="{{ p.conservation_jours or 5 }}">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Transformations (virgules)</label>
+                                                <input type="text" name="transformations" class="form-control"
+                                                       value="{{ p.get_transformations()|join(', ') }}">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Compatibles (virgules)</label>
+                                                <input type="text" name="compatibles" class="form-control"
+                                                       value="{{ p.get_compatibles()|join(', ') }}">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Astuce</label>
+                                                <textarea name="astuce" class="form-control" rows="2">{{ p.astuce or '' }}</textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary"
+                                                    data-bs-dismiss="modal">Annuler</button>
+                                            <button class="btn btn-primary">Enregistrer</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {# ============ REJETES ============ #}
+    {% if rejetes %}
+        <div class="card p-3">
+            <h5 class="mb-3 text-muted">❌ Rejetes (20 derniers)</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr><th>Nom</th><th>Raison</th><th>Date</th></tr>
+                </thead>
+                <tbody>
+                    {% for p in rejetes %}
+                        <tr>
+                            <td>{{ p.nom }}</td>
+                            <td><small>{{ p.raison_rejet or '-' }}</small></td>
+                            <td><small>{{ p.date_modification.strftime('%d/%m/%Y') }}</small></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

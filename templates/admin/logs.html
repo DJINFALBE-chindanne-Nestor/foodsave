@@ -1,0 +1,57 @@
+{# ============================================================ #}
+{# JOURNAL COMPLET DES ACTIONS ADMIN                            #}
+{# ============================================================ #}
+
+{% extends 'base.html' %}
+{% block title %}Journal admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+
+    <a href="{{ url_for('admin.index') }}" class="btn btn-outline-secondary btn-sm mb-3">
+        <i class="bi bi-arrow-left"></i> Retour au panneau
+    </a>
+
+    <h2 class="mb-4">
+        <i class="bi bi-journal-text text-danger"></i> Journal des actions admin
+    </h2>
+
+    {% if logs %}
+        <div class="card p-3">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Date</th>
+                        <th>Admin</th>
+                        <th>Action</th>
+                        <th>Cible</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in logs %}
+                        <tr>
+                            <td>{{ l.id }}</td>
+                            <td><small>{{ l.date_action.strftime('%d/%m/%Y a %H:%M') }}</small></td>
+                            <td>{{ l.admin.nom if l.admin else '?' }}</td>
+                            <td><span class="badge bg-secondary">{{ l.type_action }}</span></td>
+                            <td>
+                                {% if l.cible_type and l.cible_id %}
+                                    <small>{{ l.cible_type }} #{{ l.cible_id }}</small>
+                                {% else %}
+                                    <small class="text-muted">-</small>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ l.description }}</small></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">Aucune action enregistree pour l'instant.</div>
+    {% endif %}
+
+</div>
+{% endblock %}

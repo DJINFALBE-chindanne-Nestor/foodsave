@@ -1,0 +1,625 @@
+{# ============================================================ #}
+{# TEMPLATE DE BASE - Layout commun a toutes les pages          #}
+{# ============================================================ #}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FoodSave{% endblock %} - Anti-gaspillage</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- PWA : manifest et icones -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="icon" type="image/png" sizes="32x32"
+          href="{{ url_for('static', filename='icons/favicon-32.png') }}">
+    <link rel="apple-touch-icon"
+          href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+
+    <!-- PWA : meta pour iOS et Android -->
+    <meta name="theme-color" content="#2e7d32">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FoodSave">
+    <meta name="mobile-web-app-capable" content="yes">
+    <style>
+        :root {
+            --foodsave-vert: #2e7d32;
+            --foodsave-vert-clair: #66bb6a;
+            --foodsave-orange: #fd7e14;
+            --foodsave-rouge: #dc3545;
+        }
+        body {
+            background: #f5f7fa;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--foodsave-vert) !important;
+            font-size: 1.4rem;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-radius: 12px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+        }
+        .badge-critique { background: var(--foodsave-rouge); color: white; }
+        .badge-urgente  { background: var(--foodsave-orange); color: white; }
+        .badge-normale  { background: #28a745; color: white; }
+        .hero {
+            background: linear-gradient(135deg, #2e7d32, #66bb6a);
+            color: white;
+            padding: 60px 0;
+            border-radius: 0 0 24px 24px;
+        }
+        footer {
+            background: #1b5e20;
+            color: white;
+            padding: 24px 0;
+            margin-top: auto;
+        }
+        .btn-vert {
+            background: var(--foodsave-vert);
+            color: white;
+            border: none;
+        }
+        .btn-vert:hover {
+            background: #1b5e20;
+            color: white;
+        }
+        .annonce-photo {
+            height: 180px;
+            object-fit: cover;
+            width: 100%;
+            border-radius: 8px 8px 0 0;
+        }
+        main { flex: 1; }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{# ============================================================ #}
+{# BARRE DE NAVIGATION                                           #}
+{# ============================================================ #}
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('home') }}">
+            <i class="bi bi-basket-fill"></i> FoodSave
+        </a>
+        <button class="navbar-toggler" type="button"
+                data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto align-items-lg-center">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('annonces.index') }}">
+                        <i class="bi bi-list-ul"></i> Annonces
+                    </a>
+                </li>
+                                {% if current_user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('recommandation.index') }}">
+                        <i class="bi bi-stars text-warning"></i> Pour vous
+                    </a>
+                </li>
+                {% endif %}
+                                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('dashboard.index') }}">
+                        <i class="bi bi-bar-chart"></i> Statistiques
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('ontologie.index') }}">
+                        <i class="bi bi-diagram-3"></i> Ontologie
+                    </a>
+                </li>
+                {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('annonces.create') }}">
+                            <i class="bi bi-plus-circle"></i> Publier
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('annonces.mes_annonces') }}">
+                            <i class="bi bi-collection"></i> Mes annonces
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('messages.inbox') }}">
+                            <i class="bi bi-envelope"></i> Messages
+                            {% set nb_msg = nb_messages_non_lus() %}
+                            {% if nb_msg > 0 %}
+                                <span class="badge bg-danger rounded-pill">{{ nb_msg }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                                        {% if current_user.is_admin() %}
+                        <li class="nav-item">
+                            <a class="nav-link text-danger fw-bold" href="{{ url_for('admin.index') }}">
+                                <i class="bi bi-shield-lock"></i> Admin
+                                {% set nb_attente = notification_produits_attente() %}
+                                {% if nb_attente > 0 %}
+                                    <span class="badge bg-danger rounded-pill">{{ nb_attente }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                    {% endif %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button"
+                           data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i>
+                            {{ current_user.nom }}
+                            <small class="text-muted">({{ current_user.role }})</small>
+                        </a>
+                                               <ul class="dropdown-menu dropdown-menu-end">
+                            <li><span class="dropdown-item-text small text-muted">
+                                <i class="bi bi-geo-alt"></i> {{ current_user.ville }}, {{ current_user.pays }}
+                            </span></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('legal.mes_donnees') }}">
+                                    <i class="bi bi-shield-lock"></i> Mes donnees (RGPD)
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                                    <i class="bi bi-box-arrow-right"></i> Deconnexion
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.login') }}">
+                            <i class="bi bi-box-arrow-in-right"></i> Connexion
+                        </a>
+                    </li>
+                    <li class="nav-item ms-lg-2">
+                        <a class="btn btn-vert btn-sm" href="{{ url_for('auth.register') }}">
+                            <i class="bi bi-person-plus"></i> Inscription
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+{# ============================================================ #}
+{# MESSAGES FLASH                                                #}
+{# ============================================================ #}
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="container mt-3">
+            {% for categorie, message in messages %}
+                <div class="alert alert-{{ categorie }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+{# ============================================================ #}
+{# CONTENU PRINCIPAL                                             #}
+{# ============================================================ #}
+<main>
+    {% block content %}{% endblock %}
+</main>
+
+{# ============================================================ #}
+{# PIED DE PAGE                                                  #}
+{# ============================================================ #}
+<footer>
+    <div class="container text-center">
+        <p class="mb-1">
+            <i class="bi bi-basket-fill"></i>
+            <strong>FoodSave</strong> — Ensemble contre le gaspillage alimentaire
+        </p>
+        <small class="text-white-50 d-block mb-2">
+            Tchad &amp; Cameroun | Projet academique M1 Intelligence Artificielle
+        </small>
+        <small class="text-white-50">
+            <a href="{{ url_for('legal.confidentialite') }}" class="text-white-50">
+                Confidentialite
+            </a>
+            |
+            <a href="{{ url_for('legal.mentions') }}" class="text-white-50">
+                Mentions legales
+            </a>
+        </small>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+{% block extra_js %}{% endblock %}
+
+{# ============================================================ #}
+{# WIDGET CHATBOT FLOTTANT avec reconnaissance vocale           #}
+{# ============================================================ #}
+<div id="chatbot-widget">
+    <button id="chatbot-toggle" title="Assistant FoodBot">
+        <i class="bi bi-chat-dots-fill"></i>
+    </button>
+
+    <div id="chatbot-window" style="display:none;">
+        <div class="chatbot-header">
+            <div>
+                <i class="bi bi-robot"></i>
+                <strong>FoodBot</strong>
+                <small>Assistant FoodSave</small>
+            </div>
+            <button id="chatbot-close"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <div id="chatbot-messages">
+            <div class="chat-msg bot">
+                Bonjour ! Posez-moi une question sur les annonces,
+                les conseils ou les statistiques. Vous pouvez aussi
+                cliquer sur le micro pour parler.
+            </div>
+        </div>
+
+        <div class="chatbot-input">
+            <input type="text" id="chatbot-input"
+                   placeholder="Ecrivez ou parlez..." autocomplete="off">
+            <button id="chatbot-mic" title="Parler">
+                <i class="bi bi-mic-fill"></i>
+            </button>
+            <button id="chatbot-send" title="Envoyer">
+                <i class="bi bi-send-fill"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    #chatbot-widget {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+        font-family: 'Segoe UI', sans-serif;
+    }
+    #chatbot-toggle {
+        width: 60px; height: 60px;
+        border-radius: 50%;
+        background: #2e7d32;
+        color: white;
+        border: none;
+        font-size: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    #chatbot-toggle:hover { transform: scale(1.08); }
+
+    #chatbot-window {
+        position: absolute;
+        bottom: 75px;
+        right: 0;
+        width: 380px;
+        max-width: 90vw;
+        height: 520px;
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .chatbot-header {
+        background: #2e7d32;
+        color: white;
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .chatbot-header small { display: block; opacity: 0.8; font-size: 0.75rem; }
+    #chatbot-close {
+        background: transparent;
+        color: white;
+        border: none;
+        font-size: 1.1rem;
+        cursor: pointer;
+    }
+    #chatbot-messages {
+        flex: 1;
+        padding: 12px;
+        overflow-y: auto;
+        background: #f5f7fa;
+        font-size: 0.9rem;
+    }
+    .chat-msg {
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        border-radius: 10px;
+        max-width: 85%;
+        white-space: pre-line;
+    }
+    .chat-msg.bot {
+        background: white;
+        color: #333;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .chat-msg.user {
+        background: #2e7d32;
+        color: white;
+        margin-left: auto;
+    }
+    .chatbot-input {
+        display: flex;
+        padding: 8px;
+        background: white;
+        border-top: 1px solid #eee;
+        gap: 6px;
+    }
+    #chatbot-input {
+        flex: 1;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        padding: 8px 14px;
+        font-size: 0.9rem;
+        outline: none;
+    }
+    #chatbot-input:focus { border-color: #2e7d32; }
+    #chatbot-mic, #chatbot-send {
+        width: 38px; height: 38px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    #chatbot-send { background: #2e7d32; color: white; }
+    #chatbot-mic  { background: #f0f0f0; color: #555; }
+    #chatbot-mic.recording {
+        background: #dc3545;
+        color: white;
+        animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+        .chat-feedback {
+        margin-top: 6px;
+        display: flex;
+        gap: 8px;
+    }
+    .chat-feedback button {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+    }
+    .chat-feedback button:hover {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+    .chat-feedback small {
+        font-size: 0.75rem;
+        color: #888;
+    }
+</style>
+
+<script>
+    // ============================================================
+    // WIDGET CHATBOT avec reconnaissance vocale
+    // ============================================================
+    const toggleBtn  = document.getElementById('chatbot-toggle');
+    const closeBtn   = document.getElementById('chatbot-close');
+    const window_    = document.getElementById('chatbot-window');
+    const messages   = document.getElementById('chatbot-messages');
+    const input      = document.getElementById('chatbot-input');
+    const sendBtn    = document.getElementById('chatbot-send');
+    const micBtn     = document.getElementById('chatbot-mic');
+
+    toggleBtn.addEventListener('click', () => {
+        window_.style.display = (window_.style.display === 'none') ? 'flex' : 'none';
+    });
+    closeBtn.addEventListener('click', () => {
+        window_.style.display = 'none';
+    });
+
+    function ajouterMessage(texte, auteur) {
+        const div = document.createElement('div');
+        div.className = 'chat-msg ' + auteur;
+        div.textContent = texte;
+        messages.appendChild(div);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+        // On garde un session_id en memoire (localStorage) pour conserver la conversation.
+    let sessionId = localStorage.getItem('foodbot_session');
+    if (!sessionId) {
+        sessionId = null; // le serveur en creera un
+    }
+
+    async function envoyerMessage(texte) {
+        if (!texte.trim()) return;
+        ajouterMessage(texte, 'user');
+        input.value = '';
+        try {
+            const reponse = await fetch('/api/chatbot', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: texte, session_id: sessionId})
+            });
+            const data = await reponse.json();
+            // On memorise le session_id retourne pour conserver la conversation.
+            if (data.session_id) {
+                sessionId = data.session_id;
+                localStorage.setItem('foodbot_session', sessionId);
+            }
+            // On affiche la reponse AVEC les boutons de feedback.
+            ajouterMessageAvecFeedback(data.reponse, data.message_id, data.intention);
+            lireTexte(data.reponse);
+        } catch (e) {
+            ajouterMessage("Erreur : impossible de contacter le serveur.", 'bot');
+        }
+    }
+
+    // --- Nouveau : message bot avec boutons 👍 / 👎 ---
+    function ajouterMessageAvecFeedback(texte, messageId, intention) {
+        const div = document.createElement('div');
+        div.className = 'chat-msg bot';
+        div.textContent = texte;
+
+        if (messageId) {
+            const fb = document.createElement('div');
+            fb.className = 'chat-feedback';
+            fb.innerHTML = `
+                <button class="fb-up" title="Bonne reponse">👍</button>
+                <button class="fb-down" title="Mauvaise reponse">👎</button>
+            `;
+            fb.querySelector('.fb-up').addEventListener('click', () => {
+                envoyerFeedback(messageId, 'up', intention);
+                fb.innerHTML = '<small>Merci !</small>';
+            });
+            fb.querySelector('.fb-down').addEventListener('click', () => {
+                envoyerFeedback(messageId, 'down', intention);
+                fb.innerHTML = '<small>Note prise en compte.</small>';
+            });
+            div.appendChild(fb);
+        }
+
+        messages.appendChild(div);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    async function envoyerFeedback(messageId, note, intention) {
+        try {
+            await fetch('/api/chatbot/feedback', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message_id: messageId, note: note, intention: intention})
+            });
+        } catch (e) { /* silencieux */ }
+    }
+
+    sendBtn.addEventListener('click', () => envoyerMessage(input.value));
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') envoyerMessage(input.value);
+    });
+
+    // --- Reconnaissance vocale ---
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'fr-FR';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        micBtn.addEventListener('click', () => {
+            try {
+                recognition.start();
+                micBtn.classList.add('recording');
+            } catch (e) { console.error(e); }
+        });
+
+        recognition.onresult = (event) => {
+            const texte = event.results[0][0].transcript;
+            input.value = texte;
+            micBtn.classList.remove('recording');
+            envoyerMessage(texte);
+        };
+
+        recognition.onerror = (event) => {
+            micBtn.classList.remove('recording');
+            console.error('Erreur micro :', event.error);
+        };
+
+        recognition.onend = () => {
+            micBtn.classList.remove('recording');
+        };
+    } else {
+        micBtn.style.display = 'none';
+    }
+
+    // --- Synthese vocale ---
+    function lireTexte(texte) {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(texte);
+        utterance.lang = 'fr-FR';
+        utterance.rate = 1.0;
+        window.speechSynthesis.speak(utterance);
+    }
+</script>
+<!-- ============================================================ -->
+<!-- SERVICE WORKER : installation PWA                            -->
+<!-- ============================================================ -->
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then((reg) => console.log('Service Worker enregistre :', reg.scope))
+                .catch((err) => console.log('Erreur SW :', err));
+        });
+    }
+
+    let promptInstallation = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        promptInstallation = e;
+
+        const btn = document.createElement('button');
+        btn.id = 'btnInstallerPWA';
+        btn.innerHTML = '📲 Installer l\'app';
+        btn.style.cssText = `
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            z-index: 9998;
+            background: #2e7d32;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 24px;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            cursor: pointer;
+        `;
+        btn.addEventListener('click', async () => {
+            if (promptInstallation) {
+                promptInstallation.prompt();
+                await promptInstallation.userChoice;
+                promptInstallation = null;
+                btn.remove();
+            }
+        });
+        document.body.appendChild(btn);
+
+        setTimeout(() => { if (btn.parentNode) btn.remove(); }, 30000);
+    });
+
+    window.addEventListener('appinstalled', () => {
+        console.log('FoodSave installee !');
+        const btn = document.getElementById('btnInstallerPWA');
+        if (btn) btn.remove();
+    });
+</script>
+</body>
+</html>

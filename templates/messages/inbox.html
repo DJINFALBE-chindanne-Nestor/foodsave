@@ -1,0 +1,150 @@
+$inbox = @'
+{% extends 'base.html' %}
+{% block title %}Messages{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-envelope text-success"></i> Ma messagerie</h2>
+        <a href="{{ url_for('messages.nouveau') }}" class="btn btn-vert">
+            <i class="bi bi-pencil-square"></i> Nouveau message
+        </a>
+    </div>
+
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-recus">
+                <i class="bi bi-inbox"></i> Recus ({{ recus|length }})
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-envoyes">
+                <i class="bi bi-send"></i> Envoyes ({{ envoyes|length }})
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+        {# === RECUS === #}
+        <div class="tab-pane fade show active" id="tab-recus">
+            <div class="card p-3">
+                {% if recus %}
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width: 20%;">De</th>
+                                <th style="width: 40%;">Sujet</th>
+                                <th style="width: 20%;">Date</th>
+                                <th style="width: 10%;">Statut</th>
+                                <th style="width: 10%;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for m in recus %}
+                                <tr {% if not m.lu %}class="fw-bold"{% endif %}>
+                                    <td>{{ m.expediteur.nom }}</td>
+                                    <td>
+                                        <a href="{{ url_for('messages.lire', mid=m.id) }}"
+                                           class="text-decoration-none">
+                                            {{ m.sujet }}
+                                        </a>
+                                        {% if m.annonce %}
+                                            <br><small class="text-muted">
+                                                A propos de : {{ m.annonce.produit }}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td><small>{{ m.created_at.strftime('%d/%m/%Y %H:%M') }}</small></td>
+                                    <td>
+                                        {% if not m.lu %}
+                                            <span class="badge bg-danger">Nouveau</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Lu</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <form method="POST"
+                                              action="{{ url_for('messages.supprimer', mid=m.id) }}"
+                                              style="display:inline;"
+                                              onsubmit="return confirm('Supprimer ce message ?');">
+                                            <button class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle"></i>
+                        Vous n'avez aucun message pour le moment.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {# === ENVOYES === #}
+        <div class="tab-pane fade" id="tab-envoyes">
+            <div class="card p-3">
+                {% if envoyes %}
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Destinataire</th>
+                                <th>Sujet</th>
+                                <th>Date</th>
+                                <th>Statut</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for m in envoyes %}
+                                <tr>
+                                    <td>{{ m.destinataire.nom }}</td>
+                                    <td>
+                                        <a href="{{ url_for('messages.lire', mid=m.id) }}"
+                                           class="text-decoration-none">
+                                            {{ m.sujet }}
+                                        </a>
+                                    </td>
+                                    <td><small>{{ m.created_at.strftime('%d/%m/%Y %H:%M') }}</small></td>
+                                    <td>
+                                        {% if m.lu %}
+                                            <span class="badge bg-success">Lu</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Non lu</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <form method="POST"
+                                              action="{{ url_for('messages.supprimer', mid=m.id) }}"
+                                              style="display:inline;"
+                                              onsubmit="return confirm('Supprimer ce message ?');">
+                                            <button class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="alert alert-info mb-0">
+                        Vous n'avez envoye aucun message pour le moment.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+'@
+New-Item -ItemType Directory -Force -Path templates\messages | Out-Null
+Set-Content -Path templates\messages\inbox.html -Value $inbox -Encoding UTF8
+Write-Host "inbox.html :" (Test-Path templates\messages\inbox.html)

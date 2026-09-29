@@ -1,0 +1,70 @@
+$nouveau = @'
+{% extends 'base.html' %}
+{% block title %}Nouveau message{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5" style="max-width: 700px;">
+    <div class="card p-4">
+
+        <h3 class="mb-4">
+            <i class="bi bi-pencil-square text-success"></i> Nouveau message
+        </h3>
+
+        {% if annonce %}
+            <div class="alert alert-info small">
+                <strong>Concernant l'annonce :</strong> {{ annonce.produit }}
+                ({{ annonce.quantite }} {{ annonce.unite }})
+            </div>
+        {% endif %}
+
+        <form method="POST">
+
+            {% if destinataire %}
+                <input type="hidden" name="destinataire_id" value="{{ destinataire.id }}">
+                <div class="mb-3">
+                    <label class="form-label">Destinataire</label>
+                    <input type="text" class="form-control"
+                           value="{{ destinataire.nom }} ({{ destinataire.role }})" disabled>
+                </div>
+            {% else %}
+                <div class="mb-3">
+                    <label class="form-label">ID du destinataire *</label>
+                    <input type="number" class="form-control" name="destinataire_id"
+                           required placeholder="Ex: 2">
+                    <small class="text-muted">
+                        Vous trouverez l'ID sur la fiche de l'utilisateur ou de l'annonce.
+                    </small>
+                </div>
+            {% endif %}
+
+            {% if annonce %}
+                <input type="hidden" name="annonce_id" value="{{ annonce.id }}">
+            {% endif %}
+
+            <div class="mb-3">
+                <label class="form-label">Sujet</label>
+                <input type="text" class="form-control" name="sujet"
+                       placeholder="Ex: Disponibilite des tomates"
+                       value="{% if annonce %}A propos de {{ annonce.produit }}{% endif %}">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Message *</label>
+                <textarea class="form-control" name="contenu" rows="6" required
+                          placeholder="Bonjour, je suis interesse par votre annonce..."></textarea>
+            </div>
+
+            <button class="btn btn-vert w-100">
+                <i class="bi bi-send"></i> Envoyer
+            </button>
+        </form>
+
+        <p class="mt-3 text-center small">
+            <a href="{{ url_for('messages.inbox') }}">Retour a la messagerie</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
+'@
+Set-Content -Path templates\messages\nouveau.html -Value $nouveau -Encoding UTF8
+Write-Host "nouveau.html :" (Test-Path templates\messages\nouveau.html)

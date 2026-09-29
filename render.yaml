@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: foodsave
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: flask db upgrade && gunicorn app:app
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: "3.13.0"
+      - key: FLASK_APP
+        value: app.py
+    autoDeploy: true
+
+databases:
+  - name: foodsave-db
+    plan: free
+    databaseName: foodsave
+    user: foodsave_user
