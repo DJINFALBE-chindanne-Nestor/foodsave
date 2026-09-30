@@ -128,6 +128,36 @@ def create_app():
         else:
             print("[FoodSave] Table 'produit_ontologie' absente. "
                   "Lance : flask db upgrade")
+                # --- Creation auto de l'admin si inexistant ---
+        import os
+        email_admin = os.environ.get('ADMIN_EMAIL', 'admin@foodsave.com')
+        password_admin = os.environ.get('ADMIN_PASSWORD', 'AdminFoodSave2026!')
+
+        try:
+            from models.user import User
+            from datetime import datetime
+            admin_existant = User.query.filter_by(email=email_admin).first()
+            if not admin_existant:
+                from models import db
+                admin = User(
+                    email=email_admin,
+                    nom='Admin FoodSave',
+                    role='admin',
+                    ville="N'Djamena",
+                    region="N'Djamena",
+                    pays='Tchad',
+                    telephone='+23566000000',
+                    consentement_rgpd=True,
+                    date_consentement=datetime.utcnow()
+                )
+                admin.set_password(password_admin)
+                db.session.add(admin)
+                db.session.commit()
+                print(f"[FoodSave] Admin cree : {email_admin}")
+            else:
+                print(f"[FoodSave] Admin existant : {email_admin}")
+        except Exception as e:
+            print(f"[FoodSave] Creation admin ignoree : {e}")
 
     return app
 
