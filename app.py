@@ -1,21 +1,5 @@
 # ============================================================
 # POINT D'ENTREE DE L'APPLICATION FLASK
-# ------------------------------------------------------------
-# Ce fichier assemble tous les modules :
-#   - config
-#   - base de donnees (SQLAlchemy + Flask-Migrate)
-#   - login manager
-#   - routes (blueprints)
-#   - context processor (variables globales templates)
-#
-# NOTE IMPORTANTE :
-#   La creation et la mise a jour des tables sont gerees
-#   EXCLUSIVEMENT par Flask-Migrate (Alembic).
-#
-#   Workflow :
-#       flask db init      (une seule fois)
-#       flask db migrate -m "description"
-#       flask db upgrade
 # ============================================================
 
 from flask import Flask, render_template
@@ -34,7 +18,7 @@ def create_app():
     # --- Base de donnees ---
     db.init_app(app)
 
-    # --- Flask-Migrate (gestion des migrations Alembic) ---
+    # --- Flask-Migrate ---
     migrate = Migrate(app, db)
 
     # --- Flask-Login ---
@@ -48,7 +32,7 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # --- Enregistrement des blueprints ---
+    # --- Blueprints ---
     from routes.auth import auth_bp
     from routes.annonces import annonces_bp
     from routes.dashboard import dashboard_bp
@@ -56,7 +40,7 @@ def create_app():
     from routes.chatbot import chatbot_bp
     from routes.ontologie import ontologie_bp
     from routes.recommandation import recommandation_bp
-    from routes.messages import messages_bp, compter_messages_non_lus
+    from routes.messages import messages_bp
     from routes.legal import legal_bp
     from routes.vision import vision_bp
 
@@ -70,6 +54,7 @@ def create_app():
     app.register_blueprint(messages_bp)
     app.register_blueprint(legal_bp)
     app.register_blueprint(vision_bp)
+
     # --- Routes de base ---
     @app.route('/')
     def home():
@@ -78,17 +63,16 @@ def create_app():
     @app.route('/ping')
     def ping():
         return "pong"
+
     @app.route('/service-worker.js')
     def service_worker():
-        """Sert le Service Worker depuis la racine (scope global)."""
         from flask import send_from_directory
         return send_from_directory('static', 'service-worker.js',
                                     mimetype='application/javascript')
 
-    # --- Context processor : variables accessibles dans tous les templates ---
+    # --- Context processor ---
     @app.context_processor
     def injecter_variables():
-        """Injecte des variables globales dans tous les templates."""
         variables = {}
         try:
             from services.ontologie_service import nb_produits_en_attente
@@ -104,15 +88,14 @@ def create_app():
 
         return variables
 
-    # --- Migration auto des produits hardcodes vers la base ---
-    # (idempotent : ne fait rien si deja migres).
-    # Execute UNIQUEMENT si la table existe deja (donc apres upgrade).
+    # --- Initialisation dans le contexte Flask ---
     with app.app_context():
-        # Import des modeles pour que SQLAlchemy les connaisse.
+        # Import des modeles
         from models import user, annonce, reservation  # noqa
         from models.produit_ontologie import ProduitOntologie  # noqa
         from models.log_action import LogAction  # noqa
 
+        # Migration ontologie (si la table existe)
         from sqlalchemy import inspect
         inspecteur = inspect(db.engine)
         tables_existantes = inspecteur.get_table_names()
@@ -122,23 +105,19 @@ def create_app():
                 from services.ontologie_service import migrer_produits_hardcodes
                 n = migrer_produits_hardcodes()
                 if n > 0:
-                    print(f"[FoodSave] Migration ontologie : {n} produits ajoutes en base.")
+                    print(f"[FoodSave] Migration ontologie : {n} produits ajoutes.")
             except Exception as e:
                 print(f"[FoodSave] Migration ontologie ignoree : {e}")
-        else:
-            print("[FoodSave] Table 'produit_ontologie' absente. "
-                  "Lance : flask db upgrade")
-                # --- Creation auto de l'admin si inexistant ---
+
+        # --- Creation auto de l'admin ---
         import os
         email_admin = os.environ.get('ADMIN_EMAIL', 'admin@foodsave.com')
         password_admin = os.environ.get('ADMIN_PASSWORD', 'AdminFoodSave2026!')
 
         try:
-            from models.user import User
             from datetime import datetime
             admin_existant = User.query.filter_by(email=email_admin).first()
             if not admin_existant:
-                from models import db
                 admin = User(
                     email=email_admin,
                     nom='Admin FoodSave',
