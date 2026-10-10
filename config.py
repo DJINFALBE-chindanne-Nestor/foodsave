@@ -7,6 +7,10 @@
 # ============================================================
 
 import os
+from dotenv import load_dotenv
+
+# Charge les variables du fichier .env
+load_dotenv()
 
 
 class Config:

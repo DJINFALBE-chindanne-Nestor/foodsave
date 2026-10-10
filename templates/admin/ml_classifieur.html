@@ -1,0 +1,165 @@
+﻿{% extends 'base.html' %}
+{% block title %}Classifieur supervise{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-cpu text-success"></i> Classifieur supervise de produits</h2>
+               <div>
+            {% if metriques %}
+            <a href="{{ url_for('admin.ml_classifieur_comparer') }}"
+               class="btn btn-success btn-sm me-2">
+                <i class="bi bi-bar-chart"></i> Comparer les approches
+            </a>
+            {% endif %}
+            <a href="{{ url_for('admin.index') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Admin
+            </a>
+        </div>
+    </div>
+
+    <p class="text-muted">
+        Modele ML entraine sur {{ metriques.nb_total if metriques else 125 }} produits etiquetes
+        (legume, fruit, viande, laitier, cereale, boulangerie).
+        Comparaison de 3 algorithmes + baseline (regles par mots-cles).
+    </p>
+
+    <div class="card p-4 mb-4">
+        <h5>Entrainement</h5>
+        <form method="POST" action="{{ url_for('admin.ml_classifieur_entrainer') }}">
+            <button class="btn btn-vert">
+                <i class="bi bi-play-circle"></i>
+                {% if metriques %}Reentrainer{% else %}Entrainer{% endif %} les 3 modeles
+            </button>
+            <small class="text-muted d-block mt-2">
+                Entrainement : split 80/20 + validation croisee 5-fold.
+                Prend 2-5 secondes.
+            </small>
+        </form>
+    </div>
+
+    {% if metriques %}
+        {# ========== BASELINE ========== #}
+        {% if metriques.baseline %}
+        <div class="card p-4 mb-4 border-secondary">
+            <h5><i class="bi bi-arrow-right"></i> Baseline : regles par mots-cles</h5>
+            <p class="small text-muted mb-2">
+                Version actuelle de FoodSave (classifieur naif).
+            </p>
+            <div class="row">
+                <div class="col-md-3"><strong>Accuracy :</strong> {{ metriques.baseline.accuracy }}</div>
+                <div class="col-md-3"><strong>Precision :</strong> {{ metriques.baseline.precision }}</div>
+                <div class="col-md-3"><strong>Recall :</strong> {{ metriques.baseline.recall }}</div>
+                <div class="col-md-3"><strong>F1 :</strong> {{ metriques.baseline.f1 }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# ========== MODELES ========== #}
+        <h4 class="mb-3">Comparaison des 3 modeles ML</h4>
+        <div class="row mb-4">
+            {% for nom in ['Regression Logistique', 'Naive Bayes', 'Random Forest'] %}
+                {% if nom in metriques %}
+                    {% set m = metriques[nom] %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card p-3 h-100 {% if metriques.meilleur == nom %}border-success{% endif %}">
+                            <h6>
+                                {{ nom }}
+                                {% if metriques.meilleur == nom %}
+                                    <span class="badge bg-success">MEILLEUR</span>
+                                {% endif %}
+                            </h6>
+                            <table class="table table-sm mb-0">
+                                <tr><td>Accuracy</td><td class="text-end"><strong>{{ m.accuracy }}</strong></td></tr>
+                                <tr><td>Precision</td><td class="text-end">{{ m.precision }}</td></tr>
+                                <tr><td>Recall</td><td class="text-end">{{ m.recall }}</td></tr>
+                                <tr><td>F1-score</td><td class="text-end"><strong>{{ m.f1 }}</strong></td></tr>
+                                <tr><td>CV 5-fold</td><td class="text-end">{{ m.cv_moyenne }} ± {{ m.cv_ecart_type }}</td></tr>
+                                <tr><td>Erreurs</td><td class="text-end text-danger">{{ m.nb_erreurs }}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+               {# ========== MATRICE DE CONFUSION DU MEILLEUR ========== #}
+        {% set meilleur = metriques[metriques.meilleur] %}
+        <div class="card p-4 mb-4">
+            <h5>Matrice de confusion : {{ metriques.meilleur }}</h5>
+            <p class="small text-muted">Lignes = reels, colonnes = predits.</p>
+            <table class="table table-sm table-bordered text-center">
+                <thead>
+                    <tr>
+                        <th></th>
+                        {% for label in meilleur.labels_uniques %}
+                            <th>{{ label }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for label_ligne in meilleur.labels_uniques %}
+                        {% set i = loop.index0 %}
+                        <tr>
+                            <th>{{ label_ligne }}</th>
+                            {% for label_col in meilleur.labels_uniques %}
+                                {% set j = loop.index0 %}
+                                {% set val = meilleur.matrice_confusion[i][j] %}
+                                <td class="{% if i == j %}table-success{% elif val > 0 %}table-warning{% endif %}">
+                                    {{ val }}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {# ========== ANALYSE D'ERREURS ========== #}
+        <div class="card p-4 mb-4">
+            <h5>Analyse d'erreurs ({{ meilleur.nb_erreurs }} erreurs sur {{ metriques.nb_test }} tests)</h5>
+            {% if meilleur.erreurs %}
+                <table class="table table-sm">
+                    <thead>
+                        <tr><th>Produit</th><th>Vrai</th><th>Predit</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for e in meilleur.erreurs %}
+                            <tr>
+                                <td>{{ e.texte }}</td>
+                                <td><span class="badge bg-success">{{ e.vrai }}</span></td>
+                                <td><span class="badge bg-danger">{{ e.predit }}</span></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="alert alert-success mb-0">
+                    Aucune erreur sur le jeu de test !
+                </div>
+            {% endif %}
+        </div>
+
+        {# ========== DETAIL DATASET ========== #}
+        <div class="card p-4">
+            <h5>Dataset</h5>
+            <ul class="mb-0">
+                <li>Total : <strong>{{ metriques.nb_total }}</strong></li>
+                <li>Train : <strong>{{ metriques.nb_train }}</strong> | Test : <strong>{{ metriques.nb_test }}</strong></li>
+                <li>Entraine le : <strong>{{ metriques.date_entrainement }}</strong></li>
+                <li>Repartition : 
+                    {% for cat, n in metriques.repartition.items() %}
+                        <span class="badge bg-secondary">{{ cat }}={{ n }}</span>
+                    {% endfor %}
+                </li>
+            </ul>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            Aucun modele entraine. Clique sur le bouton ci-dessus.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

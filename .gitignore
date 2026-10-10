@@ -43,3 +43,25 @@ rehash_passwords.py
 generer_icones.py
 creer_icones_photo.py
 foodsave-icon.jpg
+
+.env
+
+*key*.txt
+
+gemini-key.txt
+
+test_*.py
+
+produits_alimentaires.csv
+
+# Fichiers sensibles
+*.key
+*key*.txt
+gemini-key.txt
+
+# Fichiers de travail
+test_*.py
+produits_alimentaires.csv
+
+# Modeles ML generes
+models_ml/*.pkl

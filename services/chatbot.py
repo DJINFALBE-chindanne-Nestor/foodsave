@@ -371,22 +371,30 @@ def repondre(message, session_id=None):
                                  f"Essayez un autre mot, ou demandez-moi un produit "
                                  f"(tomate, mangue, boeuf, mil...).")
 
-    # ---------------- INTENTION INCONNUE ----------------
+        # ---------------- INTENTION INCONNUE ----------------
     else:
-        web = chercher_en_ligne(message)
-        if web:
-            reponse_texte = (f"Je n'ai pas de reponse exacte dans ma base, "
-                             f"mais voici ce que j'ai trouve sur {web['source']} :\n"
-                             f"{web['texte']}")
-            if web.get('url'):
-                reponse_texte += f"\n\nSource : {web['url']}"
-            source = "wiki"
+        # 1. On essaie d'abord Gemini (IA generative)
+        from services.gemini_service import poser_question, gemini_disponible
+
+        if gemini_disponible():
+            contexte = _construire_contexte_foodsave()
+            reponse_gemini = poser_question(message, contexte=contexte, session_id=session_id)
+
+            if reponse_gemini:
+                reponse_texte = reponse_gemini
+                source = "gemini"
+            else:
+                reponse_texte = _reponse_fallback(message)
+                source = "fallback"
         else:
-            reponse_texte = ("Je n'ai pas bien compris. Essayez :\n"
-                             "- 'annonces a Douala'\n"
-                             "- 'conseils pour la viande'\n"
-                             "- 'statistiques'\n"
-                             "- 'c'est quoi la tomate ?'")
+            # 2. Pas de cle API : on utilise l'ancienne methode (Wikipedia)
+            web = chercher_en_ligne(message)
+            if web:
+                reponse_texte = (f"Voici ce que j'ai trouve :\n{web['texte']}")
+                source = "wiki"
+            else:
+                reponse_texte = _reponse_fallback(message)
+                source = "fallback"
 
     # On memorise la reponse du bot
     message_id = memory.ajouter_message(session_id, 'bot', reponse_texte)
@@ -468,3 +476,27 @@ def _reponse_conseils(categorie, ville):
             f"- {conseil['message']}\n"
             f"- Duree : {conseil['duree']}\n"
             f"- Astuce : {conseil['astuce']}")
+
+
+
+# ============================================================
+# FONCTIONS UTILITAIRES POUR LE FALLBACK
+# ============================================================
+
+def _construire_contexte_foodsave():
+    """Construit un contexte avec les donnees actuelles de FoodSave."""
+    try:
+        from models.annonce import Annonce
+        nb_annonces = Annonce.query.filter_by(statut='publiee').count()
+        return f"Il y a actuellement {nb_annonces} annonces publiees sur la plateforme."
+    except Exception:
+        return ""
+
+
+def _reponse_fallback(message):
+    """Reponse par defaut quand tout echoue."""
+    return ("Je n'ai pas bien compris. Essayez :\n"
+            "- 'annonces a Douala'\n"
+            "- 'conseils pour la viande'\n"
+            "- 'statistiques'\n"
+            "- Ou posez-moi une question generale !")

@@ -11,18 +11,14 @@
 #   - detecter les anomalies de prix (z-classique + MAD)
 #   - generer un rapport journalier PDF
 #   - consulter le journal des actions
+#   - entrainer et comparer les modeles ML
 # ============================================================
 
-# Outils Flask.
 from flask import (Blueprint, render_template, redirect, url_for,
                    flash, request, Response)
-# Gestion de session.
 from flask_login import login_required, current_user
-# Pour creer un decorateur personnalise.
 from functools import wraps
-# Pour dater les suspensions.
 from datetime import datetime
-# Modeles.
 from models import db
 from models.annonce import Annonce
 from models.user import User
@@ -30,7 +26,6 @@ from models.reservation import Reservation
 from models.log_action import LogAction
 
 
-# On cree le Blueprint 'admin' avec un prefixe d'URL '/admin'.
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 
@@ -54,7 +49,7 @@ def admin_required(f):
 
 
 # ------------------------------------------------------------
-# FONCTION UTILITAIRE : enregistrer une action dans le journal
+# FONCTION UTILITAIRE : journaliser une action admin
 # ------------------------------------------------------------
 def log(admin_id, type_action, cible_id=None, cible_type=None, description=""):
     """Ajoute une entree dans le journal des actions admin."""
@@ -389,7 +384,7 @@ def ontologie_supprimer(pid):
 
 
 # ============================================================
-# 6. DETECTION D'ANOMALIES DE PRIX
+# 6. DETECTION D'ANOMALIES DE PRIX (MAD + Z-classique)
 # ============================================================
 @admin_bp.route('/anomalies')
 @login_required
@@ -436,7 +431,7 @@ def rapport():
 @login_required
 @admin_required
 def rapport_pdf():
-    """Genere et telecharge le rapport au format PDF (admin uniquement)."""
+    """Genere et telecharge le rapport au format PDF."""
     from flask import send_file
     from services.rapport import generer_rapport, rapport_30_jours
     from services.pdf_service import generer_pdf_rapport, nom_fichier_rapport
@@ -460,10 +455,11 @@ def rapport_pdf():
         as_attachment=True,
         download_name=nom_fichier_rapport(rapport_data),
     )
-    # ============================================================
-# 8. RECOMMANDATION ML - Entrainement et statistiques
-# ============================================================
 
+
+# ============================================================
+# 8. RECOMMANDATION ML - Random Forest
+# ============================================================
 @admin_bp.route('/ml/recommandation')
 @login_required
 @admin_required
@@ -494,10 +490,11 @@ def ml_entrainer():
         flash(f"Erreur d'entrainement : {e}", "danger")
 
     return redirect(url_for('admin.ml_recommandation'))
+
+
 # ============================================================
 # 9. NLP - Classification automatique
 # ============================================================
-
 @admin_bp.route('/ml/nlp')
 @login_required
 @admin_required
@@ -543,10 +540,11 @@ def ml_nlp_tester():
 
     resultat = analyser_phrase(phrase)
     return jsonify(resultat)
-# ============================================================
-# 10. ANOMALIES - Isolation Forest (comparaison avec MAD)
-# ============================================================
 
+
+# ============================================================
+# 10. ANOMALIES - Isolation Forest
+# ============================================================
 @admin_bp.route('/ml/anomalies-if')
 @login_required
 @admin_required
@@ -556,7 +554,6 @@ def ml_anomalies_if():
                                         comparer_trois_methodes)
     metriques = charger_metriques()
 
-    # On essaie de generer la comparaison (peut echouer si modele non entraine).
     try:
         comparaison = comparer_trois_methodes()
     except Exception as e:
@@ -588,3 +585,68 @@ def ml_anomalies_if_entrainer():
         flash(f"Erreur d'entrainement : {e}", "danger")
 
     return redirect(url_for('admin.ml_anomalies_if'))
+
+
+# ============================================================
+# 11. CLASSIFIEUR SUPERVISE - ML
+# ============================================================
+@admin_bp.route('/ml/classifieur')
+@login_required
+@admin_required
+def ml_classifieur():
+    """Page : dashboard du classifieur supervise."""
+    from services.classifieur_supervise import charger_metriques
+    metriques = charger_metriques()
+    return render_template('admin/ml_classifieur.html', metriques=metriques)
+
+
+@admin_bp.route('/ml/classifieur/entrainer', methods=['POST'])
+@login_required
+@admin_required
+def ml_classifieur_entrainer():
+    """Entraine et compare les 3 modeles."""
+    from services.classifieur_supervise import (entrainer_et_comparer,
+                                                  evaluer_baseline)
+
+    try:
+        metriques = entrainer_et_comparer()
+        baseline = evaluer_baseline()
+        metriques['baseline'] = baseline
+
+        import joblib
+        from services.classifieur_supervise import CHEMIN_METRIQUES
+        joblib.dump(metriques, CHEMIN_METRIQUES)
+
+        meilleur = metriques['meilleur']
+        meilleur_f1 = metriques[meilleur]['f1']
+
+        log(current_user.id, 'classifieur_entrainement', None, 'model',
+            f"Classifieur supervise : meilleur={meilleur}, F1={meilleur_f1}, "
+            f"baseline_F1={baseline['f1']}")
+        db.session.commit()
+
+        flash(f"Meilleur modele : {meilleur} (F1={meilleur_f1}) vs "
+              f"baseline (F1={baseline['f1']}).", "success")
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        flash(f"Erreur d'entrainement : {e}", "danger")
+
+    return redirect(url_for('admin.ml_classifieur'))
+
+
+@admin_bp.route('/ml/classifieur/comparer')
+@login_required
+@admin_required
+def ml_classifieur_comparer():
+    """Page : comparaison complete baseline vs ML vs hybride."""
+    from services.classifieur_supervise import comparer_toutes_approches
+
+    try:
+        resultats = comparer_toutes_approches()
+    except Exception as e:
+        flash(f"Erreur : {e}", "danger")
+        return redirect(url_for('admin.ml_classifieur'))
+
+    return render_template('admin/ml_classifieur_comparer.html',
+                           resultats=resultats)

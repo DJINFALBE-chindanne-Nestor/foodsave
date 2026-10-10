@@ -1,0 +1,174 @@
+﻿{% extends 'base.html' %}
+{% block title %}Comparaison des approches{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-bar-chart text-success"></i> Comparaison des approches</h2>
+        <div>
+            <a href="{{ url_for('admin.ml_classifieur') }}" class="btn btn-outline-secondary btn-sm me-2">
+                <i class="bi bi-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <p class="text-muted">
+        Comparaison scientifique des 3 approches sur le meme jeu de test :
+        <strong>baseline (regles)</strong>, <strong>meilleur modele ML</strong>, et
+        <strong>approche hybride</strong> (regles + ML).
+    </p>
+
+    {# ========== TABLEAU COMPARATIF ========== #}
+    <div class="card p-4 mb-4">
+        <h5>Tableau comparatif</h5>
+        <table class="table table-bordered text-center align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Approche</th>
+                    <th>Accuracy</th>
+                    <th>Precision</th>
+                    <th>Recall</th>
+                    <th>F1-score</th>
+                    <th>Statut</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Baseline</strong><br><small class="text-muted">regles par mots-cles</small></td>
+                    <td>{{ resultats.baseline.accuracy }}</td>
+                    <td>{{ resultats.baseline.precision }}</td>
+                    <td>{{ resultats.baseline.recall }}</td>
+                    <td><strong>{{ resultats.baseline.f1 }}</strong></td>
+                    <td>
+                        {% if resultats.gagnant == 'Baseline (regles)' %}
+                            <span class="badge bg-success">GAGNANT</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>{{ resultats.meilleur_ml.nom }}</strong><br><small class="text-muted">meilleur modele ML</small></td>
+                    <td>{{ resultats.meilleur_ml.accuracy }}</td>
+                    <td>{{ resultats.meilleur_ml.precision }}</td>
+                    <td>{{ resultats.meilleur_ml.recall }}</td>
+                    <td><strong>{{ resultats.meilleur_ml.f1 }}</strong></td>
+                    <td>
+                        {% if resultats.gagnant == resultats.meilleur_ml.nom %}
+                            <span class="badge bg-success">GAGNANT</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr class="table-success">
+                    <td><strong>Hybride</strong><br><small class="text-muted">regles + ML</small></td>
+                    <td>{{ resultats.hybride.accuracy }}</td>
+                    <td>{{ resultats.hybride.precision }}</td>
+                    <td>{{ resultats.hybride.recall }}</td>
+                    <td><strong>{{ resultats.hybride.f1 }}</strong></td>
+                    <td>
+                        {% if resultats.gagnant == 'Hybride' %}
+                            <span class="badge bg-success">GAGNANT</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    {# ========== ANALYSE DE L'HYBRIDE ========== #}
+    <div class="card p-4 mb-4">
+        <h5>Detail de l'approche hybride</h5>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card p-3 text-center bg-light">
+                    <h3 class="text-success">{{ resultats.hybride.nb_regles }}</h3>
+                    <small class="text-muted">regles utilisees</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-3 text-center bg-light">
+                    <h3 class="text-primary">{{ resultats.hybride.nb_ml }}</h3>
+                    <small class="text-muted">ML utilise</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-3 text-center bg-light">
+                    <h3 class="text-secondary">{{ resultats.hybride.nb_defaut }}</h3>
+                    <small class="text-muted">defaut</small>
+                </div>
+            </div>
+        </div>
+        <p class="small text-muted mt-3 mb-0">
+            Sur {{ resultats.hybride.nb_regles + resultats.hybride.nb_ml + resultats.hybride.nb_defaut }}
+            produits testes, l'hybride a utilise les regles {{ resultats.hybride.nb_regles }} fois
+            et le ML {{ resultats.hybride.nb_ml }} fois.
+        </p>
+    </div>
+
+    {# ========== CONCLUSION SCIENTIFIQUE ========== #}
+    <div class="alert alert-{% if resultats.gagnant == 'Hybride' %}success{% elif resultats.baseline_gagne_sur_ml %}info{% else %}primary{% endif %}">
+        <h5><i class="bi bi-trophy"></i> Approche gagnante : {{ resultats.gagnant }}</h5>
+        <p class="mb-0">{{ resultats.explication }}</p>
+    </div>
+
+    {# ========== EXPLICATION SCIENTIFIQUE ========== #}
+    {% if resultats.baseline_gagne_sur_ml %}
+    <div class="card p-4 border-warning">
+        <h5><i class="bi bi-lightbulb text-warning"></i> Pourquoi la baseline bat le ML ?</h5>
+        <p>C'est un resultat <strong>scientifiquement interessant</strong> qui s'explique par 3 facteurs :</p>
+        <ol>
+            <li>
+                <strong>Dataset trop petit ({{ resultats.dataset_size }} exemples)</strong> :
+                avec 100 exemples d'entrainement et 7 categories, cela fait
+                seulement ~14 exemples par classe en moyenne. Un modele ML a besoin
+                de beaucoup plus pour generaliser.
+            </li>
+            <li>
+                <strong>Probleme tres explicite</strong> : les noms de produits
+                contiennent presque toujours le mot-cle de leur categorie
+                (« tomate », « yaourt », « pain »). Une simple regle suffit.
+            </li>
+            <li>
+                <strong>TF-IDF perd de l'information</strong> : avec si peu de
+                donnees, la vectorisation TF-IDF ne peut pas capturer les nuances
+                fines du vocabulaire alimentaire.
+            </li>
+        </ol>
+        <p class="mb-0">
+            <strong>Conclusion</strong> : sur ce probleme et ce volume de donnees,
+            l'approche par regles reste competitive. L'approche hybride (regles + ML)
+            est la <strong>vraie solution d'ingenierie</strong> : elle beneficie
+            de la precision des regles sur les cas connus et de la couverture du
+            modele ML sur les cas inconnus.
+        </p>
+    </div>
+    {% endif %}
+
+    {# ========== PERSPECTIVES ========== #}
+    <div class="card p-4 mt-4">
+        <h5><i class="bi bi-arrow-up-circle text-success"></i> Perspectives d'amelioration</h5>
+        <ul class="mb-0">
+            <li>
+                <strong>Augmenter le dataset</strong> : passer de {{ resultats.dataset_size }}
+                a 400-500 exemples. A ce seuil, les modeles ML devraient
+                surclasser la baseline (le vocabulaire devient trop varie pour les regles).
+            </li>
+            <li>
+                <strong>Ajouter des langues locales</strong> : arabe tchadien,
+                ewondo, duala, etc. Les regles sont monolingues, le ML peut
+                apprendre plusieurs langues.
+            </li>
+            <li>
+                <strong>Mecanisme d'apprentissage continu</strong> : chaque annonce
+                validee par l'admin devient un nouvel exemple d'entrainement.
+                Le modele s'ameliore avec le temps.
+            </li>
+            <li>
+                <strong>Embeddings semantiques</strong> : utiliser fastText ou
+                Word2Vec pour capturer les similarites entre produits
+                (ex: « tomate » et « tomates » sont proches).
+            </li>
+        </ul>
+    </div>
+
+</div>
+{% endblock %}
