@@ -65,3 +65,7 @@ produits_alimentaires.csv
 
 # Modeles ML generes
 models_ml/*.pkl
+
+data/gemini_stats.json
+
+data/gemini_stats.json
