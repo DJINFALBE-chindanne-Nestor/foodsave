@@ -58,12 +58,12 @@ def poser_question(question, contexte=None, session_id=None):
     reponse_texte = None
 
     MODELES = [
-        'gemini-3.8-flash',
-        'gemini-flash-latest',
-        'gemini-2.5-flash',
-        'gemini-2.5-pro',
+        'gemini-3.8-flash',       # Le plus recent
+        'gemini-3.7-flash',       # Fallback 1
+        'gemini-3.6-flash',       # Fallback 2
+        'gemini-3.5-flash',       # Fallback 3
+        'gemini-flash-latest',    # Fallback final (toujours a jour)
     ]
-
     try:
         from google.genai import types
 
